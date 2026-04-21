@@ -82,7 +82,7 @@ const Auth = () => {
             fontSize: '0.85rem',
             textAlign: 'center'
           }}>
-            {error}
+            {typeof error === 'string' ? error : (error.message || 'Error en la autenticación')}
           </div>
         )}
 
