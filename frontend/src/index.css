@@ -1,0 +1,112 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+
+:root {
+  --bg-obsidian: #050505;
+  --bg-onyx: #0a0a0a;
+  --bg-card: rgba(18, 18, 18, 0.85);
+  --gold-primary: #d4af37;
+  --gold-light: #f1d592;
+  --gold-dark: #aa8a2e;
+  --platinum: #e5e4e2;
+  --text-white: #ffffff;
+  --text-gray: #a0a0a0;
+  --text-muted: #666666;
+  --border-gold: rgba(212, 175, 55, 0.25);
+  --border-platinum: rgba(229, 228, 226, 0.15);
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --shadow-gold: 0 10px 30px rgba(212, 175, 55, 0.1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-obsidian);
+  color: var(--text-white);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.luxury-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-platinum);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.luxury-card:hover {
+  border-color: var(--border-gold);
+}
+
+.gold-gradient-text {
+  background: linear-gradient(135deg, var(--gold-primary), var(--gold-light), var(--gold-dark));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-button {
+  background: linear-gradient(135deg, var(--gold-dark), var(--gold-primary));
+  color: #000;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 12px 24px;
+}
+
+.gold-button:hover {
+  background: linear-gradient(135deg, var(--gold-primary), var(--gold-light));
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4);
+}
+
+.platinum-card {
+  background: linear-gradient(135deg, #1e1e1e 0%, #121212 100%);
+  border: 1px solid rgba(229, 228, 226, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.platinum-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(229, 228, 226, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Animations */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #121212 25%, #1a1a1a 50%, #121212 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
