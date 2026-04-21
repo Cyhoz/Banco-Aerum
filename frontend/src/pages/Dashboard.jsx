@@ -10,7 +10,9 @@ import {
   User as UserIcon,
   TrendingUp,
   History,
-  ShieldCheck
+  ShieldCheck,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { accountService, transactionService, authService } from '../services/api';
 
@@ -22,6 +24,7 @@ const Dashboard = () => {
   const [showOpModal, setShowOpModal] = useState(false);
   const [opType, setOpType] = useState('DEPOSIT'); // 'DEPOSIT' or 'TRANSFER'
   const [formData, setFormData] = useState({ amount: '', recipientAccount: '', description: '' });
+  const [showAccountNumber, setShowAccountNumber] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -52,6 +55,12 @@ const Dashboard = () => {
 
   const handleOperation = async (e) => {
     e.preventDefault();
+    
+    if (!account) {
+      alert("No se encontró una cuenta activa para este usuario.");
+      return;
+    }
+
     try {
       await transactionService.createTransaction({
         account_id: account.id,
@@ -63,7 +72,9 @@ const Dashboard = () => {
       setFormData({ amount: '', recipientAccount: '', description: '' });
       fetchData(); // Recargar datos
     } catch (err) {
-      alert("Error al procesar la operación");
+      console.error("Error en la operación:", err);
+      const msg = err.response?.data?.error || "Error al procesar la operación";
+      alert(msg);
     }
   };
 
@@ -114,8 +125,21 @@ const Dashboard = () => {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
               <div>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-gray)', letterSpacing: '0.2em' }}>NUMERO DE CUENTA</p>
-                <p style={{ fontSize: '1.1rem', letterSpacing: '0.1em' }}>**** **** **** {account?.account_number?.slice(-4) || '8888'}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-gray)', letterSpacing: '0.2em' }}>NUMERO DE CUENTA</p>
+                  <button 
+                    onClick={() => setShowAccountNumber(!showAccountNumber)}
+                    style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                    title={showAccountNumber ? "Ocultar número" : "Mostrar número"}
+                  >
+                    {showAccountNumber ? <EyeOff size={14} color="var(--gold-primary)" /> : <Eye size={14} color="var(--gold-primary)" />}
+                  </button>
+                </div>
+                <p style={{ fontSize: '1.1rem', letterSpacing: '0.1em' }}>
+                  {showAccountNumber 
+                    ? account?.account_number 
+                    : `**** **** **** ${account?.account_number?.slice(-4) || '8888'}`}
+                </p>
               </div>
               <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/1280px-Mastercard-logo.svg.png" alt="logo" style={{ width: '40px', opacity: 0.8 }} />
             </div>

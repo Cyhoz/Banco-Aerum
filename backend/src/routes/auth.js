@@ -53,6 +53,25 @@ router.post('/signup', async (req, res) => {
     });
 
     if (error) return res.status(400).json({ error: error.message });
+
+    // Crear una cuenta bancaria inicial para el usuario
+    if (data.user) {
+      const accountNumber = '99' + Math.floor(10000000 + Math.random() * 90000000);
+      const { error: accError } = await supabase
+        .from('accounts')
+        .insert([
+          { 
+            user_id: data.user.id, 
+            account_number: accountNumber, 
+            balance: 50.00 // Saldo inicial de cortesía
+          }
+        ]);
+      
+      if (accError) {
+        console.error('Error creating initial account:', accError.message);
+      }
+    }
+
     res.status(201).json({ message: 'Usuario registrado con éxito', user: data.user });
   } catch (err) {
     res.status(500).json({ error: 'Error en el servidor durante el registro' });
@@ -95,6 +114,26 @@ router.post('/login', async (req, res) => {
     });
 
     if (error) return res.status(400).json({ error: error.message });
+
+    // Verificar si el usuario ya tiene una cuenta bancaria, si no, crearla
+    const { data: accounts } = await supabase
+      .from('accounts')
+      .select('id')
+      .eq('user_id', data.user.id);
+    
+    if (!accounts || accounts.length === 0) {
+      const accountNumber = '99' + Math.floor(10000000 + Math.random() * 90000000);
+      await supabase
+        .from('accounts')
+        .insert([
+          { 
+            user_id: data.user.id, 
+            account_number: accountNumber, 
+            balance: 50.00 
+          }
+        ]);
+    }
+
     res.status(200).json({ 
       message: 'Inicio de sesión exitoso', 
       token: data.session.access_token,

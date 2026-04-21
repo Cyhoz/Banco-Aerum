@@ -80,8 +80,24 @@ router.get('/:account_id', authenticateToken, async (req, res) => {
 router.post('/', authenticateToken, async (req, res) => {
   const { account_id, amount, description, type } = req.body;
 
+  if (!account_id || !amount || !type) {
+    return res.status(400).json({ error: 'Faltan campos obligatorios' });
+  }
+
   try {
-    // 1. Registrar la transacción
+    // 1. Verificar que la cuenta pertenece al usuario (Seguridad)
+    const { data: ownAccount, error: ownError } = await supabase
+      .from('accounts')
+      .select('id, balance')
+      .eq('id', account_id)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (ownError || !ownAccount) {
+      return res.status(403).json({ error: 'No tienes permiso sobre esta cuenta' });
+    }
+
+    // 2. Registrar la transacción
     const { data: transaction, error: tError } = await supabase
       .from('transactions')
       .insert([{ account_id, amount, description, type }])
@@ -90,26 +106,24 @@ router.post('/', authenticateToken, async (req, res) => {
 
     if (tError) return res.status(400).json({ error: tError.message });
 
-    // 2. Actualizar el saldo de la cuenta (Lógica simplificada)
-    const { data: account, error: aError } = await supabase
+    // 3. Actualizar el saldo de la cuenta
+    const newBalance = type === 'DEBITO' || type === 'RETIRO' || type === 'TRANSFERENCIA_ENVIADA' || type === 'TRANSFERENCIA'
+      ? ownAccount.balance - amount
+      : ownAccount.balance + amount;
+
+    const { error: updateError } = await supabase
       .from('accounts')
-      .select('balance')
-      .eq('id', account_id)
-      .single();
+      .update({ balance: newBalance })
+      .eq('id', account_id);
 
-    if (!aError) {
-      const newBalance = type === 'DEBITO' || type === 'RETIRO' || type === 'TRANSFERENCIA_ENVIADA'
-        ? account.balance - amount
-        : account.balance + amount;
-
-      await supabase
-        .from('accounts')
-        .update({ balance: newBalance })
-        .eq('id', account_id);
+    if (updateError) {
+      // Nota: En un sistema real usaríamos transacciones SQL/RPC para evitar inconsistencias
+      console.error('Error al actualizar saldo:', updateError.message);
     }
 
-    res.status(201).json({ message: 'Transacción registrada con éxito', transaction });
+    res.status(201).json({ message: 'Transacción registrada con éxito', transaction, newBalance });
   } catch (err) {
+    console.error('Error procesando transacción:', err);
     res.status(500).json({ error: 'Error al procesar la transacción' });
   }
 });
