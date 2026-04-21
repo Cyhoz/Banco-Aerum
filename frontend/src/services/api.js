@@ -35,4 +35,10 @@ export const transactionService = {
   createTransaction: (data) => api.post('/transactions', data),
 };
 
+export const adminService = {
+  listUsers: () => api.get('/admin/users'),
+  createUser: (userData) => api.post('/admin/users', userData),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`),
+};
+
 export default api;

@@ -7,28 +7,29 @@ import {
   LogOut, 
   Plus, 
   Send, 
-  User as UserIcon,
-  TrendingUp,
-  History,
+  History, 
   ShieldCheck,
   Eye,
-  EyeOff
+  EyeOff,
+  Settings,
+  Menu,
+  ChevronRight
 } from 'lucide-react';
-import { accountService, transactionService, authService } from '../services/api';
+import { Link } from 'react-router-dom';
+import { accountService, transactionService } from '../services/api';
 
 const Dashboard = () => {
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')));
+  const [user] = useState(JSON.parse(localStorage.getItem('user')));
   const [account, setAccount] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showOpModal, setShowOpModal] = useState(false);
-  const [opType, setOpType] = useState('DEPOSIT'); // 'DEPOSIT' or 'TRANSFER'
+  const [opType, setOpType] = useState('DEPOSIT'); 
   const [formData, setFormData] = useState({ amount: '', recipientAccount: '', description: '' });
   const [showAccountNumber, setShowAccountNumber] = useState(false);
 
   const fetchData = async () => {
     try {
-      // Por simplicidad, asumimos que el usuario solo tiene una cuenta
       const accRes = await accountService.getAccounts();
       if (accRes.data && accRes.data.length > 0) {
         const myAcc = accRes.data[0];
@@ -37,7 +38,7 @@ const Dashboard = () => {
         setTransactions(transRes.data);
       }
     } catch (err) {
-      console.error("Error fetching dashboard data", err);
+      console.error("Error fetching data", err);
     } finally {
       setLoading(false);
     }
@@ -55,232 +56,246 @@ const Dashboard = () => {
 
   const handleOperation = async (e) => {
     e.preventDefault();
-    
-    if (!account) {
-      alert("No se encontró una cuenta activa para este usuario.");
-      return;
-    }
+    if (!account) return;
 
     try {
       await transactionService.createTransaction({
         account_id: account.id,
         amount: parseFloat(formData.amount),
         type: opType === 'DEPOSIT' ? 'CREDITO' : 'TRANSFERENCIA',
-        description: formData.description || (opType === 'DEPOSIT' ? 'Depósito Personal' : `Transferencia a ${formData.recipientAccount}`)
+        description: formData.description || (opType === 'DEPOSIT' ? 'Depósito en Efectivo' : `Transferencia a ${formData.recipientAccount}`)
       });
       setShowOpModal(false);
       setFormData({ amount: '', recipientAccount: '', description: '' });
-      fetchData(); // Recargar datos
+      fetchData();
     } catch (err) {
-      console.error("Error en la operación:", err);
-      const msg = err.response?.data?.error || "Error al procesar la operación";
-      alert(msg);
+      alert(err.response?.data?.error || "Error en la operación");
     }
   };
 
   if (loading) return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-obsidian)' }}>
-      <div className="skeleton" style={{ width: '100px', height: '100px', borderRadius: '50%' }}></div>
+    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--aerum-gray-light)' }}>
+      <div className="skeleton" style={{ width: '80px', height: '80px', borderRadius: '50%' }}></div>
     </div>
   );
 
   return (
-    <div className="dashboard-container" style={{ minHeight: '100vh', background: 'var(--bg-obsidian)', color: 'white', padding: '24px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--aerum-gray-light)' }}>
+      <div className="be-top-bar" />
+      
       {/* Header */}
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <ShieldCheck color="var(--gold-primary)" size={32} />
-          <h2 className="gold-gradient-text" style={{ fontSize: '1.8rem' }}>AUREUM</h2>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <div style={{ textAlign: 'right' }}>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-gray)' }}>Bienvenido,</p>
-            <p style={{ fontSize: '1rem', fontWeight: '600' }}>{user?.name || 'Cliente Distinguido'}</p>
+      <header className="be-header-container" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <Menu size={24} color="var(--aerum-navy)" style={{ marginRight: '16px' }} />
+            <ShieldCheck color="var(--aerum-gold)" size={32} />
+            <h1 style={{ fontSize: '1.6rem', marginLeft: '10px', fontWeight: '800', letterSpacing: '-0.02em' }}>
+              BANCO<span style={{ color: 'var(--aerum-gold)' }}>AERUM</span>
+            </h1>
           </div>
-          <button onClick={handleLogout} style={{ background: 'rgba(255,255,255,0.05)', padding: '10px', borderRadius: '50%' }}>
-            <LogOut size={20} color="#ff6b6b" />
-          </button>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+            <div style={{ textAlign: 'right', display: 'none', md: 'block' }}>
+              <p style={{ fontSize: '0.7rem', color: 'var(--aerum-gray-medium)', fontWeight: '700' }}>CLIENTE AERUM</p>
+              <p style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--aerum-navy)' }}>
+                {user?.user_metadata?.full_name || user?.name || 'Titular'}
+              </p>
+            </div>
+            
+            {(user?.user_metadata?.role === 'admin' || user?.role === 'admin') && (
+              <Link to="/admin" className="gold-button" style={{ fontSize: '0.75rem', padding: '10px 16px' }}>
+                AUDITORÍA
+              </Link>
+            )}
+            
+            <button onClick={handleLogout} style={{ color: '#EF4444', background: 'rgba(239, 68, 68, 0.05)', padding: '10px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <LogOut size={18} />
+              <span style={{ fontSize: '0.85rem', fontWeight: '700' }}>CERRAR SESIÓN</span>
+            </button>
+          </div>
         </div>
       </header>
 
-      <main style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '30px', marginBottom: '40px' }}>
-          
-          {/* Card Section */}
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="platinum-card luxury-card" 
-            style={{ minHeight: '220px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
-          >
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <p style={{ color: 'var(--text-gray)', fontSize: '0.9rem', letterSpacing: '0.1em' }}>SALDO DISPONIBLE</p>
-                <CreditCard color="var(--platinum)" opacity={0.5} />
-              </div>
-              <h1 style={{ fontSize: '3rem', marginTop: '10px' }}>
-                <span style={{ color: 'var(--gold-primary)', marginRight: '8px' }}>$</span>
-                {account?.balance?.toLocaleString() || '0.00'}
-              </h1>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-gray)', letterSpacing: '0.2em' }}>NUMERO DE CUENTA</p>
-                  <button 
-                    onClick={() => setShowAccountNumber(!showAccountNumber)}
-                    style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                    title={showAccountNumber ? "Ocultar número" : "Mostrar número"}
-                  >
-                    {showAccountNumber ? <EyeOff size={14} color="var(--gold-primary)" /> : <Eye size={14} color="var(--gold-primary)" />}
-                  </button>
-                </div>
-                <p style={{ fontSize: '1.1rem', letterSpacing: '0.1em' }}>
-                  {showAccountNumber 
-                    ? account?.account_number 
-                    : `**** **** **** ${account?.account_number?.slice(-4) || '8888'}`}
-                </p>
-              </div>
-              <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/1280px-Mastercard-logo.svg.png" alt="logo" style={{ width: '40px', opacity: 0.8 }} />
-            </div>
-          </motion.div>
+      <main style={{ maxWidth: '1200px', margin: '48px auto', padding: '0 20px' }}>
+        <div style={{ marginBottom: '40px' }}>
+          <h2 style={{ fontSize: '2.2rem', fontWeight: '800', color: 'var(--aerum-navy)' }}>Hola, {user?.user_metadata?.full_name?.split(' ')[0] || 'Bienvenido'}</h2>
+          <p style={{ color: 'var(--aerum-gray-medium)', fontWeight: '500' }}>Aquí tienes el resumen consolidado de tus finanzas.</p>
+        </div>
 
-          {/* Quick Actions */}
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="luxury-card"
-            style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
-          >
-            <h3 style={{ borderBottom: '1px solid var(--border-platinum)', paddingBottom: '12px', marginBottom: '8px' }}>OPERACIONES RÁPIDAS</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '32px', marginBottom: '48px' }}>
+          
+          {/* Main Account Card */}
+          <div className="platinum-card luxury-card" style={{ padding: '36px', borderLeftWidth: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
+              <div>
+                <p style={{ color: 'var(--aerum-gray-medium)', fontSize: '0.85rem', fontWeight: '700', letterSpacing: '0.05em' }}>SALDO TOTAL DISPONIBLE</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px' }}>
+                   <p style={{ fontSize: '0.9rem', color: 'var(--aerum-navy)', fontFamily: 'monospace', fontWeight: '700' }}>
+                    {showAccountNumber ? account?.account_number : `**** **** ${account?.account_number?.slice(-4)}`}
+                   </p>
+                   <button onClick={() => setShowAccountNumber(!showAccountNumber)} style={{ background: 'none', color: 'var(--aerum-gold)' }}>
+                    {showAccountNumber ? <EyeOff size={16} /> : <Eye size={16} />}
+                   </button>
+                </div>
+              </div>
+              <div style={{ background: 'var(--aerum-gray-light)', padding: '12px', borderRadius: '12px' }}>
+                <CreditCard color="var(--aerum-navy)" size={32} />
+              </div>
+            </div>
+            
+            <h1 style={{ fontSize: '3.5rem', color: 'var(--aerum-navy)', display: 'flex', alignItems: 'baseline' }}>
+              <span style={{ fontSize: '1.5rem', marginRight: '6px', color: 'var(--aerum-gold)' }}>$</span>
+              {account?.balance?.toLocaleString()}
+            </h1>
+            
+            <div style={{ marginTop: '32px', display: 'flex', gap: '16px' }}>
               <button 
                 onClick={() => { setOpType('DEPOSIT'); setShowOpModal(true); }}
-                className="gold-button" 
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '20px' }}
+                className="gold-button"
+                style={{ flex: 1 }}
               >
-                <Plus size={24} />
-                <span style={{ fontSize: '0.8rem' }}>DEPOSITAR</span>
+                INGRESAR DINERO
               </button>
               <button 
                 onClick={() => { setOpType('TRANSFER'); setShowOpModal(true); }}
-                className="luxury-card"
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '20px', background: 'rgba(255,255,255,0.05)' }}
+                style={{ flex: 1, background: 'var(--aerum-navy)', color: 'white', fontWeight: '700' }}
               >
-                <Send size={24} color="var(--gold-primary)" />
-                <span style={{ fontSize: '0.8rem', color: 'white' }}>TRANSFERIR</span>
+                TRANSFERIR
               </button>
             </div>
-            <div className="luxury-card" style={{ flex: 1, background: 'rgba(212, 175, 55, 0.03)', display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <TrendingUp color="var(--gold-primary)" />
-              <div>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-gray)' }}>Rendimiento Mensual</p>
-                <p style={{ fontWeight: 'bold' }}>+ 4.25% APY</p>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Transactions Section */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="luxury-card" 
-          style={{ minHeight: '400px' }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <History color="var(--gold-primary)" size={20} />
-              <h3>ACTIVIDAD RECIENTE</h3>
-            </div>
-            <button style={{ color: 'var(--gold-light)', fontSize: '0.9rem', background: 'none' }}>Ver todo</button>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {/* Side Info Cards */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div className="luxury-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '28px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                <div style={{ background: 'rgba(225, 161, 26, 0.1)', padding: '12px', borderRadius: '12px' }}>
+                   <History color="var(--aerum-gold)" size={24} />
+                </div>
+                <div>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--aerum-gray-medium)', fontWeight: '700' }}>PUNTOS AERUM</p>
+                  <p style={{ fontWeight: '800', fontSize: '1.4rem', color: 'var(--aerum-navy)' }}>12,840 <span style={{ fontSize: '0.9rem', color: 'var(--aerum-gold)' }}>pts</span></p>
+                </div>
+              </div>
+              <ChevronRight color="var(--aerum-border)" />
+            </div>
+            <div className="luxury-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '28px' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                <div style={{ background: 'rgba(0, 45, 82, 0.05)', padding: '12px', borderRadius: '12px' }}>
+                   <ShieldCheck color="var(--aerum-navy)" size={24} />
+                </div>
+                <div>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--aerum-gray-medium)', fontWeight: '700' }}>PROTECCIÓN ACTIVA</p>
+                  <p style={{ fontWeight: '800', fontSize: '1.1rem', color: 'var(--aerum-navy)' }}>Ciberseguridad 24/7</p>
+                </div>
+              </div>
+              <div style={{ background: '#10B981', width: '10px', height: '10px', borderRadius: '50%' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Transactions Table Style */}
+        <div className="luxury-card" style={{ padding: '40px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <History color="var(--aerum-navy)" size={28} />
+              <h3 style={{ fontSize: '1.4rem', color: 'var(--aerum-navy)', fontWeight: '800' }}>Actividad de Cuenta</h3>
+            </div>
+            <button style={{ color: 'var(--aerum-blue-light)', fontWeight: '700', fontSize: '0.9rem', background: 'none' }}>Descargar Cartola</button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             {transactions.length > 0 ? transactions.map((t, idx) => (
               <div key={idx} style={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 
                 alignItems: 'center', 
-                padding: '16px', 
-                borderRadius: '12px', 
-                background: 'rgba(255,255,255,0.02)',
-                borderLeft: `4px solid ${t.type === 'CREDITO' ? '#4caf50' : '#f44336'}`
+                padding: '24px 0', 
+                borderBottom: idx === transactions.length - 1 ? 'none' : '1px solid var(--aerum-border)'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <div style={{ 
-                    width: '40px', 
-                    height: '40px', 
-                    borderRadius: '50%', 
-                    background: t.type === 'CREDITO' ? 'rgba(76, 175, 80, 0.1)' : 'rgba(244, 67, 54, 0.1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    {t.type === 'CREDITO' ? <ArrowDownLeft color="#4caf50" size={20} /> : <ArrowUpRight color="#f44336" size={20} />}
-                  </div>
-                  <div>
-                    <p style={{ fontWeight: '600' }}>{t.description || 'Transacción Aureum'}</p>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-gray)' }}>{new Date(t.created_at).toLocaleDateString()}</p>
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                   <div style={{ 
+                     width: '48px', 
+                     height: '48px', 
+                     borderRadius: '12px',
+                     background: t.type === 'CREDITO' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(107, 114, 128, 0.05)',
+                     display: 'flex',
+                     alignItems: 'center',
+                     justifyContent: 'center',
+                     color: t.type === 'CREDITO' ? '#059669' : '#4B5563'
+                   }}>
+                    {t.type === 'CREDITO' ? <ArrowDownLeft size={22} /> : <ArrowUpRight size={22} />}
+                   </div>
+                   <div>
+                    <p style={{ fontWeight: '700', fontSize: '1.1rem', color: 'var(--aerum-navy)' }}>{t.description}</p>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--aerum-gray-medium)', fontWeight: '500' }}>{new Date(t.created_at).toLocaleDateString()} • {new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <p style={{ 
-                    fontWeight: 'bold', 
-                    fontSize: '1.1rem',
-                    color: t.type === 'CREDITO' ? '#4caf50' : '#f44336'
+                    fontWeight: '800', 
+                    fontSize: '1.2rem',
+                    color: t.type === 'CREDITO' ? '#059669' : 'var(--aerum-navy)'
                   }}>
                     {t.type === 'CREDITO' ? '+' : '-'}${t.amount.toLocaleString()}
                   </p>
-                  <p style={{ fontSize: '0.7rem', color: 'var(--text-gray)' }}>COMPLETADO</p>
+                  <p style={{ fontSize: '0.7rem', color: 'var(--aerum-gray-medium)', fontWeight: '700' }}>CONFIRMADO</p>
                 </div>
               </div>
             )) : (
-              <p style={{ textAlign: 'center', color: 'var(--text-gray)', padding: '40px' }}>No hay transacciones aún.</p>
+              <div style={{ textAlign: 'center', padding: '60px 0' }}>
+                <div style={{ background: 'var(--aerum-gray-light)', width: '60px', height: '60px', borderRadius: '50%', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <History size={30} color="var(--aerum-border)" />
+                </div>
+                <p style={{ color: 'var(--aerum-gray-medium)', fontWeight: '600' }}>No se registran movimientos en el periodo.</p>
+              </div>
             )}
           </div>
-        </motion.div>
+        </div>
       </main>
 
-      {/* Modal for Operations */}
+      {/* Operation Modal */}
       <AnimatePresence>
         {showOpModal && (
           <div style={{ 
             position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
-            background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
+            background: 'rgba(0, 45, 82, 0.4)', backdropFilter: 'blur(10px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
           }}>
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              exit={{ scale: 0.95, opacity: 0 }}
               className="luxury-card"
-              style={{ width: '90%', maxWidth: '400px' }}
+              style={{ width: '90%', maxWidth: '440px', borderTop: '6px solid var(--aerum-navy)' }}
             >
-              <h2 className="gold-gradient-text" style={{ marginBottom: '24px' }}>
-                {opType === 'DEPOSIT' ? 'REALIZAR DEPÓSITO' : 'NUEVA TRANSFERENCIA'}
+              <h2 style={{ marginBottom: '28px', fontSize: '1.5rem', fontWeight: '800' }}>
+                {opType === 'DEPOSIT' ? 'Confirmar Depósito' : 'Transferencia Aerum'}
               </h2>
               <form onSubmit={handleOperation}>
                 <div style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.8rem', color: 'var(--text-gray)' }}>CANTIDAD</label>
-                  <input 
-                    type="number" 
-                    placeholder="0.00"
-                    required
-                    style={{ width: '100%', padding: '12px', background: 'var(--bg-obsidian)', border: '1px solid var(--border-platinum)', borderRadius: '8px', color: 'white' }}
-                    value={formData.amount}
-                    onChange={(e) => setFormData({...formData, amount: e.target.value})}
-                  />
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '700', color: 'var(--aerum-gray-medium)' }}>MONTO A TRANSACCIONAR</label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: '800', color: 'var(--aerum-gold)' }}>$</span>
+                    <input 
+                      type="number" 
+                      placeholder="0.00"
+                      required
+                      style={{ width: '100%', padding: '14px 14px 14px 30px', border: '1px solid var(--aerum-border)', borderRadius: '8px', fontSize: '1.1rem', fontWeight: '700' }}
+                      value={formData.amount}
+                      onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                    />
+                  </div>
                 </div>
                 
                 {opType === 'TRANSFER' && (
                   <div style={{ marginBottom: '20px' }}>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.8rem', color: 'var(--text-gray)' }}>CUENTA DESTINO</label>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '700', color: 'var(--aerum-gray-medium)' }}>CUENTA DE DESTINO</label>
                     <input 
                       type="text" 
-                      placeholder="Número de cuenta"
+                      placeholder="99-XXXX-XXXX"
                       required
-                      style={{ width: '100%', padding: '12px', background: 'var(--bg-obsidian)', border: '1px solid var(--border-platinum)', borderRadius: '8px', color: 'white' }}
+                      style={{ width: '100%', padding: '14px', border: '1px solid var(--aerum-border)', borderRadius: '8px' }}
                       value={formData.recipientAccount}
                       onChange={(e) => setFormData({...formData, recipientAccount: e.target.value})}
                     />
@@ -288,19 +303,19 @@ const Dashboard = () => {
                 )}
 
                 <div style={{ marginBottom: '32px' }}>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.8rem', color: 'var(--text-gray)' }}>DESCRIPCIÓN (OPCIONAL)</label>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '700', color: 'var(--aerum-gray-medium)' }}>COMENTARIO ADICIONAL</label>
                   <input 
                     type="text" 
-                    placeholder="Ref. Pago"
-                    style={{ width: '100%', padding: '12px', background: 'var(--bg-obsidian)', border: '1px solid var(--border-platinum)', borderRadius: '8px', color: 'white' }}
+                    placeholder="Referencia o motivo"
+                    style={{ width: '100%', padding: '14px', border: '1px solid var(--aerum-border)', borderRadius: '8px' }}
                     value={formData.description}
                     onChange={(e) => setFormData({...formData, description: e.target.value})}
                   />
                 </div>
 
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <button type="button" onClick={() => setShowOpModal(false)} className="luxury-card" style={{ flex: 1, padding: '12px', background: 'none', color: 'var(--text-gray)' }}>CANCELAR</button>
-                  <button type="submit" className="gold-button" style={{ flex: 2 }}>{opType === 'DEPOSIT' ? 'CONFIRMAR DEPÓSITO' : 'ENVIAR FONDOS'}</button>
+                <div style={{ display: 'flex', gap: '16px' }}>
+                  <button type="button" onClick={() => setShowOpModal(false)} style={{ flex: 1, padding: '14px', background: 'var(--aerum-gray-light)', color: 'var(--aerum-gray-dark)', fontWeight: '700' }}>ANULAR</button>
+                  <button type="submit" className="gold-button" style={{ flex: 1.5, padding: '14px' }}>EJECUTAR</button>
                 </div>
               </form>
             </motion.div>

@@ -26,11 +26,13 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 const authRoutes = require('./routes/auth');
 const accountRoutes = require('./routes/accounts');
 const transactionRoutes = require('./routes/transactions');
+const adminRoutes = require('./routes/admin');
 
 // Usar rutas
 app.use('/api/auth', authRoutes);
 app.use('/api/accounts', accountRoutes);
 app.use('/api/transactions', transactionRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Manejo de errores global
 app.use((err, req, res, next) => {

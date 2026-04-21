@@ -2,15 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Users, 
+  UserPlus,
   Activity, 
   ShieldCheck, 
   Search, 
   Filter, 
-  Download,
   ArrowUpRight,
   ArrowDownLeft,
-  LogOut
+  LogOut,
+  ChevronLeft
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { transactionService } from '../services/api';
 
 const AdminDashboard = () => {
@@ -45,69 +47,93 @@ const AdminDashboard = () => {
   );
 
   if (loading) return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-obsidian)' }}>
-      <div className="skeleton" style={{ width: '100px', height: '100px', borderRadius: '50%' }}></div>
+    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--aerum-gray-light)' }}>
+      <div className="skeleton" style={{ width: '80px', height: '80px', borderRadius: '50%' }}></div>
     </div>
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-obsidian)', color: 'white', padding: '24px' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <ShieldCheck color="var(--gold-primary)" size={32} />
-          <h2 className="gold-gradient-text" style={{ fontSize: '1.8rem' }}>AUREUM ADMIN</h2>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <div style={{ textAlign: 'right' }}>
-            <p style={{ fontSize: '0.8rem', color: 'var(--gold-light)' }}>Panel de Control Escalonado</p>
-            <p style={{ fontSize: '1rem', fontWeight: '600' }}>Admin: {user?.name || 'Gestor'}</p>
+    <div style={{ minHeight: '100vh', background: 'var(--aerum-gray-light)' }}>
+      <div className="be-top-bar" />
+      
+      <header className="be-header-container">
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <Link to="/dashboard" style={{ color: 'var(--aerum-navy)', background: 'var(--aerum-gray-light)', padding: '8px', borderRadius: '50%', display: 'flex' }}><ChevronLeft size={24} /></Link>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <ShieldCheck color="var(--aerum-gold)" size={32} />
+              <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--aerum-navy)', letterSpacing: '-0.02em' }}>
+                ADMIN<span style={{ color: 'var(--aerum-gold)' }}>AERUM</span>
+              </h2>
+            </div>
           </div>
-          <button onClick={handleLogout} style={{ background: 'rgba(255,255,255,0.05)', padding: '10px', borderRadius: '50%' }}>
-            <LogOut size={20} color="#ff6b6b" />
-          </button>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+             <div style={{ textAlign: 'right' }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--aerum-gold)', fontWeight: '800', letterSpacing: '0.05em' }}>MÓDULO DE AUDITORÍA</p>
+              <p style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--aerum-navy)' }}>{user?.user_metadata?.full_name || 'Personal Logístico'}</p>
+            </div>
+            <button onClick={handleLogout} style={{ color: '#EF4444', background: 'rgba(239, 68, 68, 0.05)', padding: '10px', borderRadius: '8px' }}>
+              <LogOut size={22} />
+            </button>
+          </div>
         </div>
       </header>
 
-      <main style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <main style={{ maxWidth: '1200px', margin: '48px auto', padding: '0 20px' }}>
+        
         {/* Stats Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '40px' }}>
-          <div className="luxury-card" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <div style={{ padding: '12px', background: 'rgba(212, 175, 55, 0.1)', borderRadius: '12px' }}>
-              <Activity color="var(--gold-primary)" />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px', marginBottom: '48px' }}>
+          <div className="luxury-card" style={{ display: 'flex', alignItems: 'center', gap: '24px', padding: '36px' }}>
+            <div style={{ padding: '16px', background: 'rgba(0, 45, 82, 0.05)', borderRadius: '16px' }}>
+              <Activity color="var(--aerum-navy)" size={28} />
             </div>
             <div>
-              <p style={{ color: 'var(--text-gray)', fontSize: '0.8rem' }}>TOTAL TRANSACCIONES</p>
-              <h3>{allTransactions.length}</h3>
+              <p style={{ color: 'var(--aerum-gray-medium)', fontSize: '0.8rem', fontWeight: '800', letterSpacing: '0.05em' }}>MOVIMIENTOS GLOBALES</p>
+              <h3 style={{ fontSize: '2.2rem', fontWeight: '800' }}>{allTransactions.length}</h3>
             </div>
           </div>
-          <div className="luxury-card" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <div style={{ padding: '12px', background: 'rgba(229, 228, 226, 0.1)', borderRadius: '12px' }}>
-              <Users color="var(--platinum)" />
+          <div className="luxury-card" style={{ display: 'flex', alignItems: 'center', gap: '24px', padding: '36px' }}>
+            <div style={{ padding: '16px', background: 'rgba(225, 161, 26, 0.1)', borderRadius: '16px' }}>
+              <Users color="var(--aerum-gold)" size={28} />
             </div>
             <div>
-              <p style={{ color: 'var(--text-gray)', fontSize: '0.8rem' }}>USUARIOS ACTIVOS</p>
-              <h3>{new Set(allTransactions.map(t => t.account_id)).size}</h3>
+              <p style={{ color: 'var(--aerum-gray-medium)', fontSize: '0.8rem', fontWeight: '800', letterSpacing: '0.05em' }}>CLIENTES ACTIVOS</p>
+              <h3 style={{ fontSize: '2.2rem', fontWeight: '800' }}>{new Set(allTransactions.map(t => t.account_id)).size}</h3>
             </div>
           </div>
+          <Link to="/admin/users" className="luxury-card" style={{ display: 'flex', alignItems: 'center', gap: '24px', padding: '36px', textDecoration: 'none', border: '1px dashed var(--aerum-gold)' }}>
+            <div style={{ padding: '16px', background: 'var(--aerum-navy)', borderRadius: '16px' }}>
+              <UserPlus color="var(--aerum-gold)" size={28} />
+            </div>
+            <div>
+              <p style={{ color: 'var(--aerum-gray-medium)', fontSize: '0.8rem', fontWeight: '800', letterSpacing: '0.05em' }}>CONTROL TOTAL</p>
+              <h3 style={{ fontSize: '1.4rem', fontWeight: '800', color: 'var(--aerum-navy)' }}>GESTIÓN DE USUARIOS</h3>
+            </div>
+          </Link>
         </div>
 
         {/* Global Activity Table */}
-        <div className="luxury-card" style={{ minHeight: '500px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '20px' }}>
-            <h3>AUDITORÍA GLOBAL DE TRANSACCIONES</h3>
-            <div style={{ display: 'flex', gap: '12px' }}>
+        <div className="luxury-card" style={{ padding: '40px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '20px' }}>
+            <div>
+              <h3 style={{ fontSize: '1.6rem', fontWeight: '800', color: 'var(--aerum-navy)' }}>Libro de Movimientos</h3>
+              <p style={{ color: 'var(--aerum-gray-medium)', fontSize: '0.9rem', fontWeight: '500' }}>Registro histórico de todas las transacciones del ecosistema Aerum.</p>
+            </div>
+            <div style={{ display: 'flex', gap: '16px' }}>
               <div style={{ position: 'relative' }}>
-                <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <Search size={20} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--aerum-gray-medium)' }} />
                 <input 
                   type="text" 
-                  placeholder="Buscar por cuenta o Ref..."
-                  style={{ padding: '10px 10px 10px 40px', background: 'var(--bg-onyx)', border: '1px solid var(--border-platinum)', borderRadius: '8px', color: 'white' }}
+                  placeholder="ID de Cuenta o Glosa..."
+                  style={{ padding: '12px 12px 12px 48px', background: '#F9FAFB', border: '1px solid var(--aerum-border)', borderRadius: '10px', width: '300px', fontWeight: '500' }}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <button style={{ background: 'var(--bg-onyx)', border: '1px solid var(--border-platinum)', padding: '10px', borderRadius: '8px' }}>
-                <Filter size={18} color="var(--gold-primary)" />
+              <button style={{ background: 'var(--aerum-navy)', color: 'white', padding: '12px 20px', borderRadius: '10px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Filter size={20} />
+                <span>FILTRAR</span>
               </button>
             </div>
           </div>
@@ -115,46 +141,42 @@ const AdminDashboard = () => {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
-                <tr style={{ color: 'var(--gold-light)', fontSize: '0.8rem', letterSpacing: '0.1em', borderBottom: '1px solid var(--border-platinum)' }}>
-                  <th style={{ padding: '16px' }}>FECHA</th>
-                  <th style={{ padding: '16px' }}>CUENTA ORIGEN</th>
-                  <th style={{ padding: '16px' }}>TIPO</th>
-                  <th style={{ padding: '16px' }}>DESCRIPCIÓN</th>
-                  <th style={{ padding: '16px', textAlign: 'right' }}>MONTO</th>
+                <tr style={{ background: '#F9FAFB', color: 'var(--aerum-navy)', fontSize: '0.85rem', fontWeight: '800' }}>
+                  <th style={{ padding: '20px' }}>FECHA DE OPERACIÓN</th>
+                  <th style={{ padding: '20px' }}>CUENTA ORIGEN</th>
+                  <th style={{ padding: '20px' }}>TIPO DE FLUJO</th>
+                  <th style={{ padding: '20px' }}>DESCRIPCIÓN</th>
+                  <th style={{ padding: '20px', textAlign: 'right' }}>MONTO CONSOLIDADO</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredTransactions.map((t, idx) => (
-                  <motion.tr 
-                    key={idx}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: idx * 0.05 }}
-                    style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', fontSize: '0.9rem' }}
-                  >
-                    <td style={{ padding: '16px', color: 'var(--text-gray)' }}>{new Date(t.created_at).toLocaleString()}</td>
-                    <td style={{ padding: '16px' }}>
-                      <span style={{ fontFamily: 'monospace' }}>****{t.accounts?.account_number?.slice(-4) || 'N/A'}</span>
+                  <tr key={idx} style={{ borderBottom: '1px solid var(--aerum-border)', fontSize: '0.95rem', transition: 'background 0.2s' }} className="table-row-hover">
+                    <td style={{ padding: '20px', color: 'var(--aerum-gray-medium)', fontWeight: '500' }}>{new Date(t.created_at).toLocaleString()}</td>
+                    <td style={{ padding: '20px', fontWeight: '700', color: 'var(--aerum-navy)', fontFamily: 'monospace' }}>
+                      **** **** {t.accounts?.account_number?.slice(-4) || 'N/A'}
                     </td>
-                    <td style={{ padding: '16px' }}>
+                    <td style={{ padding: '20px' }}>
                       <span style={{ 
-                        padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold',
-                        background: t.type === 'CREDITO' ? 'rgba(76, 175, 80, 0.1)' : 'rgba(212, 175, 55, 0.1)',
-                        color: t.type === 'CREDITO' ? '#4caf50' : 'var(--gold-primary)'
+                        padding: '6px 14px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '800',
+                        background: t.type === 'CREDITO' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(225, 161, 26, 0.1)',
+                        color: t.type === 'CREDITO' ? '#059669' : 'var(--aerum-gold)'
                       }}>
                         {t.type}
                       </span>
                     </td>
-                    <td style={{ padding: '16px' }}>{t.description}</td>
-                    <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold' }}>
+                    <td style={{ padding: '20px', fontWeight: '500' }}>{t.description}</td>
+                    <td style={{ padding: '20px', textAlign: 'right', fontWeight: '800', color: 'var(--aerum-navy)', fontSize: '1.1rem' }}>
                       ${t.amount.toLocaleString()}
                     </td>
-                  </motion.tr>
+                  </tr>
                 ))}
               </tbody>
             </table>
             {filteredTransactions.length === 0 && (
-              <p style={{ textAlign: 'center', color: 'var(--text-gray)', padding: '40px' }}>No se encontraron registros.</p>
+              <div style={{ textAlign: 'center', padding: '80px 0' }}>
+                <p style={{ color: 'var(--aerum-gray-medium)', fontWeight: '600' }}>No se encontraron registros que coincidan con la búsqueda.</p>
+              </div>
             )}
           </div>
         </div>
