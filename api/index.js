@@ -2,12 +2,16 @@
 try {
   const app = require('../backend/src/index.js');
 
-  // Middleware de diagnóstico para verificar variables en producción
+  // Middleware de diagnóstico avanzado
   app.get('/api/debug-vars', (req, res) => {
+    const envKeys = Object.keys(process.env).filter(k => 
+      !k.includes('TOKEN') && !k.includes('SECRET') && !k.includes('KEY') && !k.includes('PASSWORD')
+    );
     res.json({
-      hasSupabaseUrl: !!process.env.SUPABASE_URL,
-      hasSupabaseKey: !!process.env.SUPABASE_ANON_KEY,
-      nodeEnv: process.env.NODE_ENV,
+      supabaseUrlSet: !!process.env.SUPABASE_URL,
+      supabaseUrlLength: process.env.SUPABASE_URL ? process.env.SUPABASE_URL.length : 0,
+      supabaseAnonKeySet: !!process.env.SUPABASE_ANON_KEY,
+      allAvailableEnvs: envKeys,
       vercelEnv: process.env.VERCEL_ENV || 'local'
     });
   });
