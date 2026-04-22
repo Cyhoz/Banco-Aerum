@@ -37,8 +37,7 @@ function App() {
             </ProtectedRoute>
           } 
         />
-        <Route 
-          path="/admin/users" 
+        <Route path="/admin/users" 
           element={
             <ProtectedRoute adminOnly={true}>
               <UserManagement />
@@ -46,6 +45,8 @@ function App() {
           } 
         />
         <Route path="/" element={<Navigate to="/dashboard" />} />
+        {/* Redirigir cualquier ruta desconocida al dashboard */}
+        <Route path="*" element={<Navigate to="/dashboard" />} />
       </Routes>
     </Router>
   );

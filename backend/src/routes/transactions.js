@@ -78,53 +78,95 @@ router.get('/:account_id', authenticateToken, async (req, res) => {
  *         description: Transacción registrada con éxito
  */
 router.post('/', authenticateToken, async (req, res) => {
-  const { account_id, amount, description, type } = req.body;
+  const { account_id, amount, description, type, recipient_account_number } = req.body;
 
   if (!account_id || !amount || !type) {
     return res.status(400).json({ error: 'Faltan campos obligatorios' });
   }
 
   try {
-    // 1. Verificar que la cuenta pertenece al usuario (Seguridad)
-    const { data: ownAccount, error: ownError } = await supabase
+    // 1. Verificar que la cuenta de origen pertenece al usuario
+    const { data: senderAccount, error: senderError } = await supabase
       .from('accounts')
-      .select('id, balance')
+      .select('id, balance, account_number')
       .eq('id', account_id)
       .eq('user_id', req.user.id)
       .single();
 
-    if (ownError || !ownAccount) {
-      return res.status(403).json({ error: 'No tienes permiso sobre esta cuenta' });
+    if (senderError || !senderAccount) {
+      return res.status(403).json({ error: 'No tienes permiso sobre esta cuenta o no existe' });
     }
 
-    // 2. Registrar la transacción
-    const { data: transaction, error: tError } = await supabase
-      .from('transactions')
-      .insert([{ account_id, amount, description, type }])
-      .select()
-      .single();
+    if (type === 'TRANSFERENCIA') {
+      if (!recipient_account_number) {
+        return res.status(400).json({ error: 'Debes proporcionar un número de cuenta de destino' });
+      }
 
-    if (tError) return res.status(400).json({ error: tError.message });
+      if (senderAccount.account_number === recipient_account_number) {
+        return res.status(400).json({ error: 'No puedes transferir a tu propia cuenta' });
+      }
 
-    // 3. Actualizar el saldo de la cuenta
-    const newBalance = type === 'DEBITO' || type === 'RETIRO' || type === 'TRANSFERENCIA_ENVIADA' || type === 'TRANSFERENCIA'
-      ? ownAccount.balance - amount
-      : ownAccount.balance + amount;
+      // 2. Buscar cuenta de destino
+      const { data: recipientAccount, error: recipientError } = await supabase
+        .from('accounts')
+        .select('id, balance')
+        .eq('account_number', recipient_account_number)
+        .single();
 
-    const { error: updateError } = await supabase
-      .from('accounts')
-      .update({ balance: newBalance })
-      .eq('id', account_id);
+      if (recipientError || !recipientAccount) {
+        return res.status(404).json({ error: 'La cuenta de destino no existe en nuestra base de datos' });
+      }
 
-    if (updateError) {
-      // Nota: En un sistema real usaríamos transacciones SQL/RPC para evitar inconsistencias
-      console.error('Error al actualizar saldo:', updateError.message);
+      if (senderAccount.balance < amount) {
+        return res.status(400).json({ error: 'Saldo insuficiente para realizar la transferencia' });
+      }
+
+      // 3. Registrar transacción de salida (Emisor)
+      await supabase.from('transactions').insert([{ 
+        account_id: senderAccount.id, 
+        amount, 
+        description: description || `Transferencia enviada a ${recipient_account_number}`, 
+        type: 'TRANSFERENCIA' 
+      }]);
+
+      // 4. Registrar transacción de entrada (Receptor)
+      await supabase.from('transactions').insert([{ 
+        account_id: recipientAccount.id, 
+        amount, 
+        description: `Transferencia recibida de ${senderAccount.account_number}`, 
+        type: 'CREDITO' 
+      }]);
+
+      // 5. Actualizar saldos
+      await supabase.from('accounts').update({ balance: senderAccount.balance - amount }).eq('id', senderAccount.id);
+      await supabase.from('accounts').update({ balance: recipientAccount.balance + amount }).eq('id', recipientAccount.id);
+
+      return res.status(201).json({ message: 'Transferencia realizada con éxito', newBalance: senderAccount.balance - amount });
+
+    } else {
+      // Lógica para DEPÓSITOS o RETIROS simples
+      const isSubtraction = type === 'DEBITO' || type === 'RETIRO';
+      const newBalance = isSubtraction ? senderAccount.balance - amount : senderAccount.balance + amount;
+
+      if (isSubtraction && senderAccount.balance < amount) {
+        return res.status(400).json({ error: 'Saldo insuficiente' });
+      }
+
+      const { data: transaction, error: tError } = await supabase
+        .from('transactions')
+        .insert([{ account_id, amount, description, type }])
+        .select()
+        .single();
+
+      if (tError) return res.status(400).json({ error: tError.message });
+
+      await supabase.from('accounts').update({ balance: newBalance }).eq('id', account_id);
+
+      res.status(201).json({ message: 'Operación realizada con éxito', transaction, newBalance });
     }
-
-    res.status(201).json({ message: 'Transacción registrada con éxito', transaction, newBalance });
   } catch (err) {
     console.error('Error procesando transacción:', err);
-    res.status(500).json({ error: 'Error al procesar la transacción' });
+    res.status(500).json({ error: 'Error al procesar la operación' });
   }
 });
 

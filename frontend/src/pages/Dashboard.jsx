@@ -63,6 +63,7 @@ const Dashboard = () => {
         account_id: account.id,
         amount: parseFloat(formData.amount),
         type: opType === 'DEPOSIT' ? 'CREDITO' : 'TRANSFERENCIA',
+        recipient_account_number: opType === 'TRANSFER' ? formData.recipientAccount : null,
         description: formData.description || (opType === 'DEPOSIT' ? 'Depósito en Efectivo' : `Transferencia a ${formData.recipientAccount}`)
       });
       setShowOpModal(false);
