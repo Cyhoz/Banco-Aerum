@@ -64,10 +64,11 @@ const Dashboard = () => {
         amount: parseFloat(formData.amount),
         type: opType === 'DEPOSIT' ? 'CREDITO' : 'TRANSFERENCIA',
         recipient_account_number: opType === 'TRANSFER' ? formData.recipientAccount : null,
+        external_url: opType === 'TRANSFER' ? formData.externalUrl : null,
         description: formData.description || (opType === 'DEPOSIT' ? 'Depósito en Efectivo' : `Transferencia a ${formData.recipientAccount}`)
       });
       setShowOpModal(false);
-      setFormData({ amount: '', recipientAccount: '', description: '' });
+      setFormData({ amount: '', recipientAccount: '', description: '', externalUrl: '' });
       fetchData();
     } catch (err) {
       alert(err.response?.data?.error || "Error en la operación");
@@ -290,17 +291,30 @@ const Dashboard = () => {
                 </div>
                 
                 {opType === 'TRANSFER' && (
-                  <div style={{ marginBottom: '20px' }}>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '700', color: 'var(--aerum-gray-medium)' }}>CUENTA DE DESTINO</label>
-                    <input 
-                      type="text" 
-                      placeholder="99-XXXX-XXXX"
-                      required
-                      style={{ width: '100%', padding: '14px', border: '1px solid var(--aerum-border)', borderRadius: '8px' }}
-                      value={formData.recipientAccount}
-                      onChange={(e) => setFormData({...formData, recipientAccount: e.target.value})}
-                    />
-                  </div>
+                  <>
+                    <div style={{ marginBottom: '20px' }}>
+                      <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '700', color: 'var(--aerum-gray-medium)' }}>CUENTA DE DESTINO</label>
+                      <input 
+                        type="text" 
+                        placeholder="99-XXXX-XXXX"
+                        required
+                        style={{ width: '100%', padding: '14px', border: '1px solid var(--aerum-border)', borderRadius: '8px' }}
+                        value={formData.recipientAccount}
+                        onChange={(e) => setFormData({...formData, recipientAccount: e.target.value})}
+                      />
+                    </div>
+                    <div style={{ marginBottom: '20px' }}>
+                      <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '700', color: 'var(--aerum-gray-medium)' }}>URL DEL BANCO DESTINO (OPCIONAL)</label>
+                      <input 
+                        type="text" 
+                        placeholder="https://banco-compañero.vercel.app"
+                        style={{ width: '100%', padding: '14px', border: '1px solid var(--aerum-gold)', borderRadius: '8px', background: 'rgba(225, 161, 26, 0.05)' }}
+                        value={formData.externalUrl}
+                        onChange={(e) => setFormData({...formData, externalUrl: e.target.value})}
+                      />
+                      <p style={{ fontSize: '0.7rem', color: 'var(--aerum-gold)', marginTop: '4px' }}>Déjalo en blanco para transferencias dentro de Aerum.</p>
+                    </div>
+                  </>
                 )}
 
                 <div style={{ marginBottom: '32px' }}>

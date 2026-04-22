@@ -2,6 +2,10 @@ const express = require('express');
 const router = express.Router();
 const supabase = require('../config/supabase');
 const authenticateToken = require('../middleware/authMiddleware');
+const axios = require('axios');
+
+// Clave compartida para la clase (en un entorno real iría en .env)
+const SHARED_SECRET = process.env.INTERBANK_SECRET || 'CLAVE_SECRETA_CLASE_2026';
 
 /**
  * @swagger
@@ -47,6 +51,49 @@ router.get('/:account_id', authenticateToken, async (req, res) => {
 
 /**
  * @swagger
+ * /api/transactions/interbank/receive:
+ *   post:
+ *     summary: Recibir transferencia de otro banco (Solo con Secret Key)
+ *     tags: [Transactions]
+ */
+router.post('/interbank/receive', async (req, res) => {
+  const { monto, cuenta_destino, banco_origen, clave_secreta, descripcion } = req.body;
+
+  if (clave_secreta !== SHARED_SECRET) {
+    return res.status(401).json({ error: 'Llave de seguridad inválida' });
+  }
+
+  try {
+    // 1. Buscar cuenta local
+    const { data: recipient, error: rError } = await supabase
+      .from('accounts')
+      .select('id, balance')
+      .eq('account_number', cuenta_destino)
+      .single();
+
+    if (rError || !recipient) {
+      return res.status(404).json({ error: 'Cuenta no encontrada en Banco Aerum' });
+    }
+
+    // 2. Registrar transacción de entrada
+    await supabase.from('transactions').insert([{ 
+      account_id: recipient.id, 
+      amount: monto, 
+      description: descripcion || `Recibido de ${banco_origen}`, 
+      type: 'CREDITO' 
+    }]);
+
+    // 3. Sumar saldo
+    await supabase.from('accounts').update({ balance: recipient.balance + monto }).eq('id', recipient.id);
+
+    res.json({ success: true, message: 'Transferencia interbancaria recibida con éxito' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error procesando recepción interbancaria' });
+  }
+});
+
+/**
+ * @swagger
  * /api/transactions:
  *   post:
  *     summary: Registrar una nueva transacción
@@ -78,14 +125,13 @@ router.get('/:account_id', authenticateToken, async (req, res) => {
  *         description: Transacción registrada con éxito
  */
 router.post('/', authenticateToken, async (req, res) => {
-  const { account_id, amount, description, type, recipient_account_number } = req.body;
+  const { account_id, amount, description, type, recipient_account_number, external_url } = req.body;
 
   if (!account_id || !amount || !type) {
     return res.status(400).json({ error: 'Faltan campos obligatorios' });
   }
 
   try {
-    // 1. Verificar que la cuenta de origen pertenece al usuario
     const { data: senderAccount, error: senderError } = await supabase
       .from('accounts')
       .select('id, balance, account_number')
@@ -97,16 +143,49 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'No tienes permiso sobre esta cuenta o no existe' });
     }
 
+    if (senderAccount.balance < amount) {
+      return res.status(400).json({ error: 'Saldo insuficiente' });
+    }
+
     if (type === 'TRANSFERENCIA') {
       if (!recipient_account_number) {
-        return res.status(400).json({ error: 'Debes proporcionar un número de cuenta de destino' });
+        return res.status(400).json({ error: 'Debes proporcionar un número de cuenta' });
       }
 
+      // --- LÓGICA INTERBANCARIA (EXTERNA) ---
+      if (external_url) {
+        try {
+          // Intentar enviar al otro banco
+          const response = await axios.post(`${external_url}/api/transactions/interbank/receive`, {
+            monto: amount,
+            cuenta_destino: recipient_account_number,
+            banco_origen: 'Banco Aerum',
+            clave_secreta: SHARED_SECRET,
+            descripcion: description
+          });
+
+          if (response.data.success) {
+             // Registrar salida local
+             await supabase.from('transactions').insert([{ 
+                account_id: senderAccount.id, 
+                amount, 
+                description: `Transferencia Interbancaria a cuenta ${recipient_account_number}`, 
+                type: 'TRANSFERENCIA' 
+             }]);
+             // Restar saldo
+             await supabase.from('accounts').update({ balance: senderAccount.balance - amount }).eq('id', senderAccount.id);
+             return res.json({ message: 'Transferencia interbancaria enviada con éxito', newBalance: senderAccount.balance - amount });
+          }
+        } catch (err) {
+          return res.status(400).json({ error: 'El banco destino no respondió o rechazó la operación: ' + (err.response?.data?.error || err.message) });
+        }
+      }
+
+      // --- LÓGICA LOCAL ---
       if (senderAccount.account_number === recipient_account_number) {
         return res.status(400).json({ error: 'No puedes transferir a tu propia cuenta' });
       }
 
-      // 2. Buscar cuenta de destino
       const { data: recipientAccount, error: recipientError } = await supabase
         .from('accounts')
         .select('id, balance')
@@ -114,14 +193,9 @@ router.post('/', authenticateToken, async (req, res) => {
         .single();
 
       if (recipientError || !recipientAccount) {
-        return res.status(404).json({ error: 'La cuenta de destino no existe en nuestra base de datos' });
+        return res.status(404).json({ error: 'La cuenta no existe en Banco Aerum' });
       }
 
-      if (senderAccount.balance < amount) {
-        return res.status(400).json({ error: 'Saldo insuficiente para realizar la transferencia' });
-      }
-
-      // 3. Registrar transacción de salida (Emisor)
       await supabase.from('transactions').insert([{ 
         account_id: senderAccount.id, 
         amount, 
@@ -129,7 +203,6 @@ router.post('/', authenticateToken, async (req, res) => {
         type: 'TRANSFERENCIA' 
       }]);
 
-      // 4. Registrar transacción de entrada (Receptor)
       await supabase.from('transactions').insert([{ 
         account_id: recipientAccount.id, 
         amount, 
@@ -137,20 +210,14 @@ router.post('/', authenticateToken, async (req, res) => {
         type: 'CREDITO' 
       }]);
 
-      // 5. Actualizar saldos
       await supabase.from('accounts').update({ balance: senderAccount.balance - amount }).eq('id', senderAccount.id);
       await supabase.from('accounts').update({ balance: recipientAccount.balance + amount }).eq('id', recipientAccount.id);
 
       return res.status(201).json({ message: 'Transferencia realizada con éxito', newBalance: senderAccount.balance - amount });
 
     } else {
-      // Lógica para DEPÓSITOS o RETIROS simples
       const isSubtraction = type === 'DEBITO' || type === 'RETIRO';
       const newBalance = isSubtraction ? senderAccount.balance - amount : senderAccount.balance + amount;
-
-      if (isSubtraction && senderAccount.balance < amount) {
-        return res.status(400).json({ error: 'Saldo insuficiente' });
-      }
 
       const { data: transaction, error: tError } = await supabase
         .from('transactions')
@@ -159,14 +226,11 @@ router.post('/', authenticateToken, async (req, res) => {
         .single();
 
       if (tError) return res.status(400).json({ error: tError.message });
-
       await supabase.from('accounts').update({ balance: newBalance }).eq('id', account_id);
-
       res.status(201).json({ message: 'Operación realizada con éxito', transaction, newBalance });
     }
   } catch (err) {
-    console.error('Error procesando transacción:', err);
-    res.status(500).json({ error: 'Error al procesar la operación' });
+    res.status(500).json({ error: 'Error interno en la operación' });
   }
 });
 
