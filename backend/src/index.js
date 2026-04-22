@@ -1,3 +1,4 @@
+// Punto de entrada del backend de Banco Aerum
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
