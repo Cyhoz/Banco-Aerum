@@ -22,11 +22,25 @@ export default function HomeScreen({ user, onLogout, onNavigate }) {
         .select('*')
         .eq('user_id', user.id);
       
-      if (accError) throw accError;
-      const mainAccount = accounts[0];
-      setAccount(mainAccount);
+      if (!accounts || accounts.length === 0) {
+        console.log('No se encontr cuenta, creando una nueva...');
+        const accountNumber = '99' + Math.floor(10000000 + Math.random() * 90000000);
+        const { data: newAcc, error: createError } = await supabase
+          .from('accounts')
+          .insert([{ 
+            user_id: user.id, 
+            account_number: accountNumber, 
+            balance: 50.00 
+          }])
+          .select()
+          .single();
+        
+        if (createError) throw createError;
+        setAccount(newAcc);
+      } else {
+        const mainAccount = accounts[0];
+        setAccount(mainAccount);
 
-      if (mainAccount) {
         const { data: txs, error: txError } = await supabase
           .from('transactions')
           .select('*')
