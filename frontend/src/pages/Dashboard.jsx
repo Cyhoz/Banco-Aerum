@@ -284,17 +284,38 @@ const Dashboard = () => {
             </div>
             
 
-             {console.log('Balance actual en render:', account?.balance)}
-             <h1 style={{ 
-               fontSize: '3.5rem', 
-               color: account?.balance > 0 ? 'var(--aerum-gold)' : 'var(--aerum-navy)', 
-               display: 'flex', 
-               alignItems: 'baseline', 
-               fontWeight: 'bold' 
-             }}>
-               <span style={{ fontSize: '1.5rem', marginRight: '6px', color: 'var(--aerum-gold)' }}>$</span>
-               {account?.balance !== undefined && account?.balance !== null ? account.balance.toLocaleString() : '0'}
-             </h1>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+               <h1 style={{ 
+                 fontSize: '3.5rem', 
+                 color: account?.balance > 0 ? 'var(--aerum-gold)' : 'var(--aerum-navy)', 
+                 display: 'flex', 
+                 alignItems: 'baseline', 
+                 fontWeight: 'bold',
+                 margin: 0
+               }}>
+                 <span style={{ fontSize: '1.5rem', marginRight: '6px', color: 'var(--aerum-gold)' }}>$</span>
+                 {account?.balance ?? '0'}
+               </h1>
+               <button 
+                 onClick={fetchData} 
+                 style={{ 
+                   background: 'none', 
+                   border: 'none', 
+                   color: 'var(--aerum-gold)', 
+                   cursor: 'pointer',
+                   padding: '5px',
+                   borderRadius: '50%',
+                   display: 'flex',
+                   alignItems: 'center',
+                   justifyContent: 'center',
+                   transition: 'all 0.3s'
+                 }}
+                 title="Actualizar saldo"
+                 className="refresh-button-hover"
+               >
+                 <Plus style={{ transform: 'rotate(45deg)' }} size={24} />
+               </button>
+             </div>
 
 
             
