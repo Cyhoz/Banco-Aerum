@@ -10,7 +10,12 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
   LogOut,
-  ChevronLeft
+  ChevronLeft,
+  Monitor,
+  Smartphone,
+  Globe,
+  MapPin,
+  Fingerprint
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { transactionService } from '../services/api';
@@ -142,31 +147,60 @@ const AdminDashboard = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
                 <tr style={{ background: '#F9FAFB', color: 'var(--aerum-navy)', fontSize: '0.85rem', fontWeight: '800' }}>
-                  <th style={{ padding: '20px' }}>FECHA DE OPERACIÓN</th>
-                  <th style={{ padding: '20px' }}>CUENTA ORIGEN</th>
-                  <th style={{ padding: '20px' }}>TIPO DE FLUJO</th>
+                  <th style={{ padding: '20px' }}>FECHA / HORA</th>
+                  <th style={{ padding: '20px' }}>USUARIO / CUENTA</th>
+                  <th style={{ padding: '20px' }}>TIPO</th>
+                  <th style={{ padding: '20px' }}>FORENSE (NAV/DISP)</th>
+                  <th style={{ padding: '20px' }}>UBICACIÓN</th>
                   <th style={{ padding: '20px' }}>DESCRIPCIÓN</th>
-                  <th style={{ padding: '20px', textAlign: 'right' }}>MONTO CONSOLIDADO</th>
+                  <th style={{ padding: '20px', textAlign: 'right' }}>MONTO</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredTransactions.map((t, idx) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid var(--aerum-border)', fontSize: '0.95rem', transition: 'background 0.2s' }} className="table-row-hover">
-                    <td style={{ padding: '20px', color: 'var(--aerum-gray-medium)', fontWeight: '500' }}>{new Date(t.created_at).toLocaleString()}</td>
-                    <td style={{ padding: '20px', fontWeight: '700', color: 'var(--aerum-navy)', fontFamily: 'monospace' }}>
-                      **** **** {t.accounts?.account_number?.slice(-4) || 'N/A'}
+                  <tr key={idx} style={{ borderBottom: '1px solid var(--aerum-border)', fontSize: '0.9rem', transition: 'background 0.2s' }} className="table-row-hover">
+                    <td style={{ padding: '20px', color: 'var(--aerum-gray-medium)', fontWeight: '500' }}>
+                      {new Date(t.created_at).toLocaleString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </td>
+                    <td style={{ padding: '20px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontWeight: '800', color: 'var(--aerum-navy)', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Fingerprint size={12} color="var(--aerum-gold)" /> {t.accounts?.user_id?.slice(0, 8)}...
+                        </span>
+                        <span style={{ color: 'var(--aerum-gray-medium)', fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                          **** {t.accounts?.account_number?.slice(-4)}
+                        </span>
+                      </div>
                     </td>
                     <td style={{ padding: '20px' }}>
                       <span style={{ 
-                        padding: '6px 14px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '800',
+                        padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800',
                         background: t.type === 'CREDITO' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(225, 161, 26, 0.1)',
                         color: t.type === 'CREDITO' ? '#059669' : 'var(--aerum-gold)'
                       }}>
                         {t.type}
                       </span>
                     </td>
-                    <td style={{ padding: '20px', fontWeight: '500' }}>{t.description}</td>
-                    <td style={{ padding: '20px', textAlign: 'right', fontWeight: '800', color: 'var(--aerum-navy)', fontSize: '1.1rem' }}>
+                    <td style={{ padding: '20px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div title={t.browser} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--aerum-navy)' }}>
+                          <Globe size={14} />
+                          <span style={{ fontSize: '0.75rem', fontWeight: '600' }}>{t.browser?.split('/')[0] || 'Web'}</span>
+                        </div>
+                        <div title={t.device} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--aerum-gray-medium)' }}>
+                          {t.device?.toLowerCase().includes('mobile') || t.device?.toLowerCase().includes('iphone') || t.device?.toLowerCase().includes('android') ? <Smartphone size={14} /> : <Monitor size={14} />}
+                          <span style={{ fontSize: '0.75rem' }}>{t.device?.length > 15 ? t.device.slice(0, 15) + '...' : t.device || 'PC'}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '20px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#6366F1' }}>
+                        <MapPin size={14} />
+                        <span style={{ fontSize: '0.75rem', fontWeight: '600' }}>{t.location || 'Privada'}</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '20px', fontWeight: '500', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.description}</td>
+                    <td style={{ padding: '20px', textAlign: 'right', fontWeight: '900', color: 'var(--aerum-navy)' }}>
                       ${t.amount.toLocaleString()}
                     </td>
                   </tr>

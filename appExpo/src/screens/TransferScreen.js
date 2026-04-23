@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { supabase } from '../../supabase';
 import { ChevronLeft, Send, Search, Building2, Globe } from 'lucide-react-native';
+import * as Device from 'expo-device';
 
 export default function TransferScreen({ user, onBack }) {
   const [banks, setBanks] = useState([{ id: 'internal', name: 'Banco Aerum (Interno)', is_external: false }]);
@@ -47,6 +48,12 @@ export default function TransferScreen({ user, onBack }) {
 
     setLoading(true);
     try {
+      const audit = {
+        browser: `Expo App ${Platform.OS}`,
+        device: `${Device.brand} ${Device.modelName}`,
+        location: `Plataforma ${Platform.OS} ${Platform.Version}`
+      };
+
       if (selectedBank.is_external) {
         // --- LÓGICA INTERBANCARIA (EXTERNA) ---
         const cleanUrl = selectedBank.api_url.endsWith('/') ? selectedBank.api_url.slice(0, -1) : selectedBank.api_url;
@@ -56,8 +63,8 @@ export default function TransferScreen({ user, onBack }) {
           body: JSON.stringify({
             account_number: recipientAccount,
             amount: transferAmount,
-            from_bank: 'Banco Aerum',
-            description: description || 'Transferencia Interbancaria',
+            from_bank: 'Banco Aerum Mobile',
+            description: description || 'Transferencia desde Dispositivo Móvil',
             api_key: selectedBank.api_key
           })
         });
@@ -65,12 +72,13 @@ export default function TransferScreen({ user, onBack }) {
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'El banco destino rechazó la operación');
 
-        // Registrar salida local
+        // Registrar salida local con auditoría
         await supabase.from('transactions').insert([{
           account_id: senderAccount.id, 
           amount: transferAmount, 
           type: 'TRANSFERENCIA',
-          description: `Interbancario a ${selectedBank.name}: ${recipientAccount}`
+          description: `Interbancario a ${selectedBank.name}: ${recipientAccount}`,
+          ...audit
         }]);
         await supabase.from('accounts').update({ balance: senderAccount.balance - transferAmount }).eq('id', senderAccount.id);
 
@@ -84,15 +92,23 @@ export default function TransferScreen({ user, onBack }) {
 
         // Emisor
         await supabase.from('transactions').insert([{
-          account_id: senderAccount.id, amount: transferAmount, type: 'TRANSFERENCIA',
-          description: description || `Envío a ${recipientAccount}`
+          account_id: senderAccount.id, 
+          amount: transferAmount, 
+          type: 'TRANSFERENCIA',
+          description: description || `Envío a ${recipientAccount}`,
+          ...audit
         }]);
         await supabase.from('accounts').update({ balance: senderAccount.balance - transferAmount }).eq('id', senderAccount.id);
         
         // Receptor
         await supabase.from('transactions').insert([{
-          account_id: recipient.id, amount: transferAmount, type: 'CREDITO',
-          description: `Recibido de ${senderAccount.account_number}`
+          account_id: recipient.id, 
+          amount: transferAmount, 
+          type: 'CREDITO',
+          description: `Recibido de ${senderAccount.account_number}`,
+          browser: 'App Móvil (Recibido)',
+          device: 'Red Banco Aerum',
+          location: 'Interno'
         }]);
         await supabase.from('accounts').update({ balance: recipient.balance + transferAmount }).eq('id', recipient.id);
       }

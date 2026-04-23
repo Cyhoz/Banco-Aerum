@@ -182,7 +182,17 @@ export default function AdminScreen({ onBack }) {
                 </View>
                 <View style={styles.mainInfo}>
                   <Text style={styles.titleText}>{item.description}</Text>
-                  <Text style={styles.subText}>Cuenta: ****{item.accounts?.account_number?.slice(-4)}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 10 }}>
+                    <Text style={styles.subText}>Cuenta: ****{item.accounts?.account_number?.slice(-4)}</Text>
+                    <Text style={[styles.subText, { color: '#D4AF37', fontWeight: '800' }]}>ID: {item.accounts?.user_id?.slice(0, 6)}</Text>
+                  </View>
+                  <View style={styles.auditRow}>
+                    <Text style={styles.auditText}>{item.browser?.split(' ')[0] || 'App'}</Text>
+                    <View style={styles.auditDot} />
+                    <Text style={styles.auditText}>{item.device || 'Mobile'}</Text>
+                    <View style={styles.auditDot} />
+                    <Text style={[styles.auditText, { color: '#0070F3' }]}>{item.location || 'Local'}</Text>
+                  </View>
                 </View>
                 <Text style={styles.amountText}>${item.amount.toLocaleString()}</Text>
               </View>
@@ -303,6 +313,9 @@ const styles = StyleSheet.create({
   mainInfo: { flex: 1 },
   titleText: { color: 'white', fontWeight: '800', fontSize: 15 },
   subText: { color: '#666', fontSize: 11, marginTop: 4, fontWeight: '600' },
+  auditRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 6 },
+  auditText: { fontSize: 9, color: '#444', fontWeight: '800', letterSpacing: 0.5 },
+  auditDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: '#333' },
   amountText: { color: 'white', fontWeight: '900', fontSize: 16 },
   emptyText: { color: '#444', textAlign: 'center', marginTop: 50, fontWeight: '700' },
   roleBadge: { fontSize: 9, fontWeight: '900', color: '#D4AF37', marginTop: 8, alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, backgroundColor: 'rgba(212, 175, 55, 0.1)', borderRadius: 6, letterSpacing: 1 },

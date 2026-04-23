@@ -93,7 +93,36 @@ const Dashboard = () => {
       return;
     }
 
+    // Capturar metadatos forenses
+    const getAuditMetadata = async () => {
+      const ua = navigator.userAgent;
+      let browser = "Desconocido";
+      if (ua.includes("Firefox")) browser = "Firefox";
+      else if (ua.includes("Chrome")) browser = "Chrome";
+      else if (ua.includes("Safari")) browser = "Safari";
+      else if (ua.includes("Edge")) browser = "Edge";
+
+      let device = "PC / Desktop";
+      if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)) {
+        device = "Móvil / Tablet";
+      }
+
+      let location = "Privada / No permitida";
+      try {
+        const pos = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000 });
+        });
+        location = `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
+      } catch (e) {
+        console.warn("Geolocalización no disponible", e.message);
+      }
+
+      return { browser, device, location };
+    };
+
     try {
+      const audit = await getAuditMetadata();
+
       if (opType === 'TRANSFER' && selectedBank?.is_external) {
         // --- LOGICA INTERBANCARIA (EXTERNA) ---
         const cleanUrl = selectedBank.api_url.endsWith('/') ? selectedBank.api_url.slice(0, -1) : selectedBank.api_url;
@@ -104,7 +133,8 @@ const Dashboard = () => {
           type: 'TRANSFERENCIA',
           recipient_account_number: formData.recipientAccount,
           external_url: cleanUrl,
-          description: `[Interbancario a ${selectedBank.name}] ${formData.description || ''}`
+          description: `[Interbancario a ${selectedBank.name}] ${formData.description || ''}`,
+          ...audit
         });
       } else {
         // --- LOGICA INTERNA (DEPÓSITOS Y TRANSFERENCIAS AERUM) ---
@@ -113,7 +143,8 @@ const Dashboard = () => {
           amount: parseFloat(formData.amount),
           type: opType === 'DEPOSIT' ? 'CREDITO' : 'TRANSFERENCIA',
           recipient_account_number: opType === 'TRANSFER' ? formData.recipientAccount : null,
-          description: formData.description || (opType === 'DEPOSIT' ? 'Depósito en Efectivo' : `Envío a ${formData.recipientAccount}`)
+          description: formData.description || (opType === 'DEPOSIT' ? 'Depósito en Efectivo' : `Envío a ${formData.recipientAccount}`),
+          ...audit
         });
       }
 

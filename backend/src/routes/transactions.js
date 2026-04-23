@@ -152,6 +152,14 @@ router.post('/', authenticateToken, async (req, res) => {
         return res.status(400).json({ error: 'Debes proporcionar un número de cuenta' });
       }
 
+      // Auditing metadata
+      const userAgent = req.headers['user-agent'] || 'Desconocido';
+      const auditData = {
+        browser: req.body.browser || userAgent,
+        device: req.body.device || 'Desconocido',
+        location: req.body.location || 'Desconocido'
+      };
+
       // --- LÓGICA INTERBANCARIA (EXTERNA) ---
       if (external_url) {
         try {
@@ -165,12 +173,15 @@ router.post('/', authenticateToken, async (req, res) => {
           });
 
           if (response.data.success) {
-             // Registrar salida local
+             // Registrar salida local con auditoría
              await supabaseAdmin.from('transactions').insert([{ 
                 account_id: senderAccount.id, 
                 amount, 
                 description: `Transferencia Interbancaria a cuenta ${recipient_account_number}`, 
-                type: 'TRANSFERENCIA' 
+                type: 'TRANSFERENCIA',
+                browser: auditData.browser,
+                device: auditData.device,
+                location: auditData.location
              }]);
              // Restar saldo
              await supabaseAdmin.from('accounts').update({ balance: senderAccount.balance - amount }).eq('id', senderAccount.id);
@@ -196,18 +207,26 @@ router.post('/', authenticateToken, async (req, res) => {
         return res.status(404).json({ error: 'La cuenta no existe en Banco Aerum' });
       }
 
+      // Emisor
       await supabaseAdmin.from('transactions').insert([{ 
         account_id: senderAccount.id, 
         amount, 
         description: description || `Transferencia enviada a ${recipient_account_number}`, 
-        type: 'TRANSFERENCIA' 
+        type: 'TRANSFERENCIA',
+        browser: auditData.browser,
+        device: auditData.device,
+        location: auditData.location
       }]);
 
+      // Receptor (Auditoría opcional aquí, pero la guardamos del emisor para rastreo)
       await supabaseAdmin.from('transactions').insert([{ 
         account_id: recipientAccount.id, 
         amount, 
         description: `Transferencia recibida de ${senderAccount.account_number}`, 
-        type: 'CREDITO' 
+        type: 'CREDITO',
+        browser: 'Sistema (Interno)',
+        device: 'Servidor',
+        location: 'Red Aerum'
       }]);
 
       await supabaseAdmin.from('accounts').update({ balance: senderAccount.balance - amount }).eq('id', senderAccount.id);
@@ -219,9 +238,25 @@ router.post('/', authenticateToken, async (req, res) => {
       const isSubtraction = type === 'DEBITO' || type === 'RETIRO';
       const newBalance = isSubtraction ? senderAccount.balance - amount : senderAccount.balance + amount;
 
+      // Auditing metadata para depósitos/retiros
+      const userAgent = req.headers['user-agent'] || 'Desconocido';
+      const auditData = {
+        browser: req.body.browser || userAgent,
+        device: req.body.device || 'Desconocido',
+        location: req.body.location || 'Desconocido'
+      };
+
       const { data: transaction, error: tError } = await supabaseAdmin
         .from('transactions')
-        .insert([{ account_id, amount, description, type }])
+        .insert([{ 
+          account_id, 
+          amount, 
+          description, 
+          type,
+          browser: auditData.browser,
+          device: auditData.device,
+          location: auditData.location
+        }])
         .select()
         .single();
 
@@ -265,7 +300,7 @@ router.get('/admin/all', authenticateToken, async (req, res) => {
 
     const { data, error } = await supabaseAdmin
       .from('transactions')
-      .select('*, accounts(account_number)')
+      .select('*, accounts(account_number, user_id)')
       .order('created_at', { ascending: false });
 
     if (error) return res.status(400).json({ error: error.message });

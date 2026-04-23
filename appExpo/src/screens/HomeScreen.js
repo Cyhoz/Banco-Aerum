@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl, Modal, TextInput } from 'react-native';
 import { supabase } from '../../supabase';
 import { Wallet, ArrowUpRight, ArrowDownLeft, Plus, Bell, LogOut, ShieldCheck, Eye, EyeOff } from 'lucide-react-native';
+import * as Device from 'expo-device';
+import { Platform } from 'react-native';
 
 export default function HomeScreen({ user, onLogout, onNavigate }) {
   const [account, setAccount] = useState(null);
@@ -99,7 +101,10 @@ export default function HomeScreen({ user, onLogout, onNavigate }) {
         account_id: account.id,
         amount: amount,
         description: 'Depósito en Efectivo',
-        type: 'CREDITO'
+        type: 'CREDITO',
+        browser: `Expo App ${Platform.OS}`,
+        device: `${Device.brand} ${Device.modelName}`,
+        location: `Plataforma ${Platform.OS} ${Platform.Version}`
       }]);
       
       if (txError) throw txError;
