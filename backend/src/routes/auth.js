@@ -164,4 +164,36 @@ router.post('/logout', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Obtener información del usuario actual
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: Datos del usuario actual
+ *       401:
+ *         description: No autorizado
+ */
+router.get('/me', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    
+    if (error || !user) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    res.status(200).json({ user });
+  } catch (err) {
+    res.status(500).json({ error: 'Error verificando sesión' });
+  }
+});
+
 module.exports = router;

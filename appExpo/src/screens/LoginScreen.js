@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { supabase } from '../../supabase';
-import { Mail, Lock, LogIn, Cpu } from 'lucide-react-native';
+import { Mail, Lock, LogIn, ShieldCheck } from 'lucide-react-native';
 
 export default function LoginScreen({ onLoginSuccess }) {
   const [email, setEmail] = useState('');
@@ -24,7 +24,7 @@ export default function LoginScreen({ onLoginSuccess }) {
       if (error) throw error;
       onLoginSuccess(data.user);
     } catch (error) {
-      Alert.alert('Error de inicio de sesión', error.message);
+      Alert.alert('Error de acceso', error.message);
     } finally {
       setLoading(false);
     }
@@ -37,19 +37,19 @@ export default function LoginScreen({ onLoginSuccess }) {
     >
       <View style={styles.header}>
         <View style={styles.logoContainer}>
-          <Cpu size={40} color="white" />
+          <ShieldCheck size={44} color="black" />
         </View>
-        <Text style={styles.title}>BANCO <Text style={{ color: '#00D2FF' }}>AERUM</Text></Text>
-        <Text style={styles.subtitle}>Futuro Digital de tus Finanzas</Text>
+        <Text style={styles.title}>BANCO <Text style={{ color: '#D4AF37' }}>AERUM</Text></Text>
+        <Text style={styles.subtitle}>EXCELENCIA FINANCIERA</Text>
       </View>
 
       <View style={styles.form}>
         <View style={styles.inputContainer}>
-          <Mail size={20} color="#666" style={styles.inputIcon} />
+          <Mail size={20} color="#D4AF37" style={styles.inputIcon} />
           <TextInput
             style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="#666"
+            placeholder="Correo electrónico"
+            placeholderTextColor="#444"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -58,11 +58,11 @@ export default function LoginScreen({ onLoginSuccess }) {
         </View>
 
         <View style={styles.inputContainer}>
-          <Lock size={20} color="#666" style={styles.inputIcon} />
+          <Lock size={20} color="#D4AF37" style={styles.inputIcon} />
           <TextInput
             style={styles.input}
             placeholder="Contraseña"
-            placeholderTextColor="#666"
+            placeholderTextColor="#444"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -75,20 +75,20 @@ export default function LoginScreen({ onLoginSuccess }) {
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="white" />
+            <ActivityIndicator color="black" />
           ) : (
             <View style={styles.buttonContent}>
-              <LogIn size={20} color="white" />
-              <Text style={styles.buttonText}>Ingresar</Text>
+              <LogIn size={20} color="black" />
+              <Text style={styles.buttonText}>ACCEDER AL SISTEMA</Text>
             </View>
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.registerLink}>
+        <View style={styles.registerLink}>
           <Text style={styles.registerText}>
-            ¿No tienes cuenta? <Text style={styles.registerHighlight}>Regístrate</Text>
+            ¿Aún no es cliente? <Text style={styles.registerHighlight}>Solicite su cuenta</Text>
           </Text>
-        </TouchableOpacity>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -97,38 +97,40 @@ export default function LoginScreen({ onLoginSuccess }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#001A2E',
-    padding: 20,
+    backgroundColor: '#0A0A0A',
+    padding: 30,
     justifyContent: 'center',
   },
   header: {
     alignItems: 'center',
-    marginBottom: 50,
+    marginBottom: 60,
   },
   logoContainer: {
-    width: 80,
-    height: 80,
-    backgroundColor: '#0070F3',
-    borderRadius: 20,
+    width: 90,
+    height: 90,
+    backgroundColor: '#D4AF37',
+    borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#00D2FF',
+    marginBottom: 25,
+    shadowColor: '#D4AF37',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.3,
     shadowRadius: 20,
-    elevation: 10,
+    elevation: 15,
   },
   title: {
     fontSize: 32,
-    fontWeight: '800',
+    fontWeight: '900',
     color: 'white',
-    letterSpacing: -1,
+    letterSpacing: 2,
   },
   subtitle: {
     color: '#888',
-    marginTop: 5,
-    fontSize: 16,
+    marginTop: 8,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 3,
   },
   form: {
     width: '100%',
@@ -136,28 +138,31 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#002D4F',
-    borderRadius: 15,
+    backgroundColor: '#111',
+    borderRadius: 18,
     marginBottom: 15,
-    paddingHorizontal: 15,
-    height: 60,
+    paddingHorizontal: 20,
+    height: 65,
+    borderWidth: 1,
+    borderColor: '#222',
   },
   inputIcon: {
-    marginRight: 10,
+    marginRight: 12,
   },
   input: {
     flex: 1,
     color: 'white',
     fontSize: 16,
+    fontWeight: '600',
   },
   button: {
-    backgroundColor: '#0070F3',
-    height: 60,
-    borderRadius: 15,
+    backgroundColor: '#D4AF37',
+    height: 65,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
-    shadowColor: '#00D2FF',
+    marginTop: 25,
+    shadowColor: '#D4AF37',
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
@@ -166,23 +171,25 @@ const styles = StyleSheet.create({
   buttonContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
   },
   buttonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '700',
+    color: 'black',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   registerLink: {
-    marginTop: 30,
+    marginTop: 40,
     alignItems: 'center',
   },
   registerText: {
-    color: '#888',
-    fontSize: 14,
+    color: '#444',
+    fontSize: 13,
+    fontWeight: '600',
   },
   registerHighlight: {
-    color: '#00D2FF',
-    fontWeight: '600',
+    color: '#D4AF37',
+    fontWeight: '800',
   },
 });

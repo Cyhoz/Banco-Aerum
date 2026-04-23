@@ -4,6 +4,7 @@ import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import UserManagement from './pages/UserManagement';
+import Home from './pages/Home';
 
 // Mock Protected Route
 const ProtectedRoute = ({ children, adminOnly = false }) => {
@@ -20,6 +21,7 @@ function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/" element={<Home />} />
         <Route path="/auth" element={<Auth />} />
         <Route 
           path="/dashboard" 
@@ -44,9 +46,8 @@ function App() {
             </ProtectedRoute>
           } 
         />
-        <Route path="/" element={<Navigate to="/dashboard" />} />
-        {/* Redirigir cualquier ruta desconocida al dashboard */}
-        <Route path="*" element={<Navigate to="/dashboard" />} />
+        {/* Redirigir cualquier ruta desconocida al home */}
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
   );

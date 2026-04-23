@@ -60,12 +60,12 @@ const AdminDashboard = () => {
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <Link to="/dashboard" style={{ color: 'var(--aerum-navy)', background: 'var(--aerum-gray-light)', padding: '8px', borderRadius: '50%', display: 'flex' }}><ChevronLeft size={24} /></Link>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
               <ShieldCheck color="var(--aerum-gold)" size={32} />
-              <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--aerum-navy)', letterSpacing: '-0.02em' }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--aerum-navy)', letterSpacing: '-0.02em', margin: 0 }}>
                 ADMIN<span style={{ color: 'var(--aerum-gold)' }}>AERUM</span>
               </h2>
-            </div>
+            </Link>
           </div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>

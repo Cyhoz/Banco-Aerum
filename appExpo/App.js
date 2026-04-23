@@ -31,7 +31,7 @@ export default function App() {
     setUser(null);
   };
 
-  if (loading) return <View style={{ flex: 1, backgroundColor: '#001A2E' }} />;
+  if (loading) return <View style={{ flex: 1, backgroundColor: '#0A0A0A' }} />;
 
   if (!user) {
     return <LoginScreen onLoginSuccess={(u) => setUser(u)} />;
@@ -62,6 +62,6 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#001A2E',
+    backgroundColor: '#0A0A0A',
   },
 });

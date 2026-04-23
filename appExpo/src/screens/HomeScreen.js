@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl, Modal, TextInput } from 'react-native';
 import { supabase } from '../../supabase';
-import { Wallet, ArrowUpRight, ArrowDownLeft, Plus, Bell, LogOut, ShieldCheck } from 'lucide-react-native';
+import { Wallet, ArrowUpRight, ArrowDownLeft, Plus, Bell, LogOut, ShieldCheck, Eye, EyeOff } from 'lucide-react-native';
 
 export default function HomeScreen({ user, onLogout, onNavigate }) {
   const [account, setAccount] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showSensitive, setShowSensitive] = useState(true);
+
+  const [isDepositModalVisible, setIsDepositModalVisible] = useState(false);
+  const [depositAmount, setDepositAmount] = useState('');
 
   const fetchData = async () => {
     try {
-      // Fetch account
       const { data: accounts, error: accError } = await supabase
         .from('accounts')
         .select('*')
@@ -22,7 +25,6 @@ export default function HomeScreen({ user, onLogout, onNavigate }) {
       setAccount(mainAccount);
 
       if (mainAccount) {
-        // Fetch transactions
         const { data: txs, error: txError } = await supabase
           .from('transactions')
           .select('*')
@@ -44,6 +46,36 @@ export default function HomeScreen({ user, onLogout, onNavigate }) {
 
   useEffect(() => {
     fetchData();
+
+    // Suscripción en tiempo real para cambios en la cuenta
+    const accountSubscription = supabase
+      .channel('accounts_changes')
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'accounts', 
+        filter: `user_id=eq.${user.id}` 
+      }, (payload) => {
+        setAccount(payload.new);
+      })
+      .subscribe();
+
+    // Suscripción para nuevas transacciones
+    const txSubscription = supabase
+      .channel('tx_changes')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'transactions'
+      }, () => {
+        fetchData(); // Recargar historial cuando hay una nueva tx
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(accountSubscription);
+      supabase.removeChannel(txSubscription);
+    };
   }, []);
 
   const onRefresh = () => {
@@ -51,48 +83,41 @@ export default function HomeScreen({ user, onLogout, onNavigate }) {
     fetchData();
   };
 
-  const handleDeposit = async () => {
-    // Note: In a real app we'd use a Modal. For simplicity in this script, we'll just add a fixed amount
-    // or simulate it. 
-    Alert.prompt(
-      "Depositar fondos",
-      "Ingrese el monto a depositar:",
-      [
-        { text: "Cancelar", style: "cancel" },
-        { 
-          text: "Depositar", 
-          onPress: async (amount) => {
-            if (!amount || isNaN(amount) || parseFloat(amount) <= 0) return;
-            try {
-              setLoading(true);
-              const { error: txError } = await supabase.from('transactions').insert([{
-                account_id: account.id,
-                amount: parseFloat(amount),
-                description: 'Depósito de fondos (Expo)',
-                type: 'CREDITO'
-              }]);
-              
-              if (txError) throw txError;
+  const confirmDeposit = async () => {
+    if (!depositAmount || isNaN(depositAmount) || parseFloat(depositAmount) <= 0) {
+      Alert.alert("Error", "Ingrese un monto válido");
+      return;
+    }
 
-              // Update balance
-              const { error: upError } = await supabase
-                .from('accounts')
-                .update({ balance: account.balance + parseFloat(amount) })
-                .eq('id', account.id);
-              
-              if (upError) throw upError;
+    try {
+      setLoading(true);
+      const amount = parseFloat(depositAmount);
+      
+      const { error: txError } = await supabase.from('transactions').insert([{
+        account_id: account.id,
+        amount: amount,
+        description: 'Depósito en Efectivo',
+        type: 'CREDITO'
+      }]);
+      
+      if (txError) throw txError;
 
-              fetchData();
-              Alert.alert("Éxito", "Depósito realizado correctamente");
-            } catch (err) {
-              Alert.alert("Error", err.message);
-            } finally {
-              setLoading(false);
-            }
-          }
-        }
-      ]
-    );
+      const { error: upError } = await supabase
+        .from('accounts')
+        .update({ balance: account.balance + amount })
+        .eq('id', account.id);
+      
+      if (upError) throw upError;
+
+      setIsDepositModalVisible(false);
+      setDepositAmount('');
+      fetchData();
+      Alert.alert("Éxito", "Depósito realizado correctamente");
+    } catch (err) {
+      Alert.alert("Error", err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading && !refreshing) {
@@ -107,83 +132,137 @@ export default function HomeScreen({ user, onLogout, onNavigate }) {
     <View style={styles.container}>
       <ScrollView 
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00D2FF" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#D4AF37" />}
       >
         <View style={styles.header}>
           <View>
-            <Text style={styles.welcomeText}>Hola,</Text>
-            <Text style={styles.userName}>{user.user_metadata?.full_name || 'Usuario'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+              <ShieldCheck size={20} color="#D4AF37" style={{ marginRight: 6 }} />
+              <Text style={styles.userName}>BANCO AERUM</Text>
+            </View>
+            <Text style={styles.welcomeText}>Hola, {user.user_metadata?.full_name?.split(' ')[0] || 'Cliente'}</Text>
           </View>
           <View style={styles.headerIcons}>
-            <TouchableOpacity style={styles.iconButton}>
-              <Bell size={24} color="white" />
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.iconButton, { backgroundColor: 'rgba(255, 69, 58, 0.1)' }]} onPress={onLogout}>
-              <LogOut size={24} color="#ff453a" />
+            <TouchableOpacity style={styles.iconButton} onPress={onLogout}>
+              <LogOut size={22} color="#D4AF37" />
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardLabel}>Saldo disponible</Text>
-            <Wallet size={20} color="white" opacity={0.8} />
+            <Text style={styles.cardLabel}>SALDO TOTAL DISPONIBLE</Text>
+            <TouchableOpacity onPress={() => setShowSensitive(!showSensitive)}>
+              {showSensitive ? <EyeOff size={20} color="#D4AF37" /> : <Eye size={20} color="#D4AF37" />}
+            </TouchableOpacity>
           </View>
-          <Text style={styles.balanceText}>${account?.balance?.toLocaleString() || '0.00'}</Text>
-          <Text style={styles.accountNumber}>Cuenta: {account?.account_number || '****'}</Text>
+          <Text style={styles.balanceText}>
+            {showSensitive ? `$ ${account?.balance?.toLocaleString() || '0'}` : '$ ••••••'}
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 15 }}>
+            <Text style={styles.accountNumber}>
+              {showSensitive ? (account?.account_number || '00000000') : '•••• ••••'}
+            </Text>
+            <Text style={[styles.accountNumber, { fontSize: 10, opacity: 0.6 }]}>TITULAR AERUM</Text>
+          </View>
         </View>
 
         <View style={styles.actionGrid}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleDeposit}>
-            <View style={[styles.actionIconContainer, { backgroundColor: 'rgba(0, 210, 255, 0.1)' }]}>
-              <Plus size={24} color="#00D2FF" />
+          <TouchableOpacity style={styles.actionButton} onPress={() => setIsDepositModalVisible(true)}>
+            <View style={styles.actionIconContainer}>
+              <Plus size={24} color="black" />
             </View>
-            <Text style={styles.actionText}>Ingresar</Text>
+            <Text style={styles.actionText}>INGRESAR</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={() => onNavigate('transfer')}>
-            <View style={[styles.actionIconContainer, { backgroundColor: 'rgba(0, 112, 243, 0.1)' }]}>
-              <ArrowUpRight size={24} color="#0070F3" />
+            <View style={styles.actionIconContainer}>
+              <ArrowUpRight size={24} color="black" />
             </View>
-            <Text style={styles.actionText}>Transferir</Text>
+            <Text style={styles.actionText}>TRANSFERIR</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.historySection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Actividad reciente</Text>
+            <Text style={styles.sectionTitle}>Últimos Movimientos</Text>
             <TouchableOpacity onPress={() => onNavigate('history')}>
-              <Text style={styles.viewAllText}>Ver todo</Text>
+              <Text style={styles.viewAllText}>Ver Cartola</Text>
             </TouchableOpacity>
           </View>
 
           {history.length > 0 ? history.map((tx) => (
             <View key={tx.id} style={styles.transactionItem}>
-              <View style={[styles.txIconContainer, { backgroundColor: tx.type === 'CREDITO' ? 'rgba(0, 255, 127, 0.1)' : 'rgba(255, 69, 58, 0.1)' }]}>
+              <View style={[styles.txIconContainer, { backgroundColor: tx.type === 'CREDITO' ? 'rgba(0, 255, 127, 0.05)' : 'rgba(255, 255, 255, 0.02)' }]}>
                 {tx.type === 'CREDITO' ? (
                   <ArrowDownLeft size={20} color="#00ff7f" />
                 ) : (
-                  <ArrowUpRight size={20} color="#ff453a" />
+                  <ArrowUpRight size={20} color="#D4AF37" />
                 )}
               </View>
               <View style={styles.txInfo}>
                 <Text style={styles.txDescription}>{tx.description}</Text>
-                <Text style={styles.txDate}>{new Date(tx.created_at).toLocaleDateString()}</Text>
+                <Text style={styles.txDate}>{new Date(tx.created_at).toLocaleDateString()} • {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
               </View>
-              <Text style={[styles.txAmount, { color: tx.type === 'CREDITO' ? '#00ff7f' : 'white' }]}>
+              <Text style={[styles.txAmount, { color: tx.type === 'CREDITO' ? '#00ff7f' : '#D4AF37' }]}>
                 {tx.type === 'CREDITO' ? '+' : '-'}${tx.amount.toLocaleString()}
               </Text>
             </View>
           )) : (
-            <Text style={styles.emptyText}>No hay movimientos aún</Text>
+            <View style={{ padding: 40, alignItems: 'center' }}>
+              <Text style={styles.emptyText}>No hay movimientos en el periodo</Text>
+            </View>
           )}
         </View>
       </ScrollView>
 
+      {/* Deposit Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isDepositModalVisible}
+        onRequestClose={() => setIsDepositModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Confirmar Ingreso</Text>
+            <Text style={styles.modalSubtitle}>Indique el monto a depositar en su cuenta</Text>
+            
+            <View style={styles.modalInputContainer}>
+              <Text style={styles.currencyPrefix}>$</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="0.00"
+                placeholderTextColor="#666"
+                keyboardType="decimal-pad"
+                value={depositAmount}
+                onChangeText={setDepositAmount}
+                autoFocus={true}
+              />
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={styles.cancelButton} 
+                onPress={() => { setIsDepositModalVisible(false); setDepositAmount(''); }}
+              >
+                <Text style={styles.cancelButtonText}>CANCELAR</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.confirmButton} 
+                onPress={confirmDeposit}
+              >
+                <Text style={styles.confirmButtonText}>EJECUTAR</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Admin Quick Access if applicable */}
       {(user.user_metadata?.role === 'admin' || user.email.includes('admin')) && (
         <TouchableOpacity style={styles.adminFab} onPress={() => onNavigate('admin')}>
-          <ShieldCheck size={24} color="white" />
-          <Text style={styles.adminFabText}>Panel Admin</Text>
+          <ShieldCheck size={20} color="black" />
+          <Text style={styles.adminFabText}>MODO AUDITOR</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -193,11 +272,11 @@ export default function HomeScreen({ user, onLogout, onNavigate }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#001A2E',
+    backgroundColor: '#0A0A0A', // Obsidian
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#001A2E',
+    backgroundColor: '#0A0A0A',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -210,78 +289,93 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 35,
   },
   welcomeText: {
     color: '#888',
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: '500',
   },
   userName: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: '700',
+    color: '#D4AF37', // Gold
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   headerIcons: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
   },
   iconButton: {
-    backgroundColor: '#002D4F',
-    padding: 10,
-    borderRadius: 12,
+    backgroundColor: 'rgba(212, 175, 55, 0.05)',
+    padding: 12,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.1)',
   },
   card: {
-    backgroundColor: '#0070F3',
-    borderRadius: 25,
-    padding: 25,
-    marginBottom: 30,
-    shadowColor: '#00D2FF',
+    backgroundColor: '#111',
+    borderRadius: 24,
+    padding: 28,
+    marginBottom: 35,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.2)',
+    shadowColor: '#D4AF37',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.1,
     shadowRadius: 20,
-    elevation: 8,
+    elevation: 10,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 15,
+    alignItems: 'center',
+    marginBottom: 20,
   },
   cardLabel: {
-    color: 'white',
-    opacity: 0.8,
-    fontSize: 14,
+    color: '#D4AF37',
+    opacity: 0.6,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.5,
   },
   balanceText: {
     color: 'white',
-    fontSize: 36,
+    fontSize: 38,
     fontWeight: '800',
-    marginBottom: 10,
+    letterSpacing: -1,
   },
   accountNumber: {
     color: 'white',
     opacity: 0.8,
-    fontSize: 14,
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   actionGrid: {
     flexDirection: 'row',
     gap: 15,
-    marginBottom: 35,
+    marginBottom: 40,
   },
   actionButton: {
     flex: 1,
-    backgroundColor: '#002D4F',
+    backgroundColor: '#1A1A1A',
     borderRadius: 20,
     padding: 20,
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#333',
   },
   actionIconContainer: {
     padding: 12,
     borderRadius: 15,
+    backgroundColor: '#D4AF37',
   },
   actionText: {
     color: 'white',
-    fontWeight: '600',
+    fontWeight: '800',
+    fontSize: 12,
+    letterSpacing: 0.5,
   },
   historySection: {
     flex: 1,
@@ -290,28 +384,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 25,
   },
   sectionTitle: {
     color: 'white',
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   viewAllText: {
-    color: '#00D2FF',
-    fontWeight: '600',
+    color: '#D4AF37',
+    fontWeight: '700',
+    fontSize: 13,
   },
   transactionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#002D4F',
-    padding: 15,
-    borderRadius: 18,
+    backgroundColor: '#111',
+    padding: 18,
+    borderRadius: 20,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#222',
   },
   txIconContainer: {
     padding: 10,
-    borderRadius: 12,
+    borderRadius: 14,
     marginRight: 15,
   },
   txInfo: {
@@ -319,42 +416,125 @@ const styles = StyleSheet.create({
   },
   txDescription: {
     color: 'white',
-    fontWeight: '600',
+    fontWeight: '700',
     fontSize: 15,
   },
   txDate: {
-    color: '#888',
-    fontSize: 12,
-    marginTop: 2,
+    color: '#666',
+    fontSize: 11,
+    marginTop: 4,
   },
   txAmount: {
-    fontWeight: '700',
-    fontSize: 16,
+    fontWeight: '900',
+    fontSize: 17,
   },
   emptyText: {
-    color: '#888',
+    color: '#444',
     textAlign: 'center',
-    marginTop: 40,
+    fontWeight: '600',
   },
   adminFab: {
     position: 'absolute',
     bottom: 30,
-    right: 20,
-    backgroundColor: '#0070F3',
+    alignSelf: 'center',
+    backgroundColor: '#D4AF37',
     flexDirection: 'row',
     alignItems: 'center',
     padding: 15,
-    paddingHorizontal: 20,
+    paddingHorizontal: 25,
     borderRadius: 30,
     gap: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 15,
+    elevation: 10,
   },
   adminFabText: {
+    color: 'black',
+    fontWeight: '900',
+    fontSize: 12,
+    letterSpacing: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#111',
+    width: '100%',
+    borderRadius: 30,
+    padding: 35,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#D4AF37',
+  },
+  modalTitle: {
     color: 'white',
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '900',
+    marginBottom: 10,
+  },
+  modalSubtitle: {
+    color: '#666',
+    fontSize: 13,
+    marginBottom: 30,
+    textAlign: 'center',
+  },
+  modalInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#000',
+    borderRadius: 20,
+    paddingHorizontal: 25,
+    height: 80,
+    marginBottom: 35,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  currencyPrefix: {
+    color: '#D4AF37',
+    fontSize: 28,
+    fontWeight: '800',
+    marginRight: 15,
+  },
+  modalInput: {
+    flex: 1,
+    color: 'white',
+    fontSize: 28,
+    fontWeight: '800',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 15,
+    width: '100%',
+  },
+  cancelButton: {
+    flex: 1,
+    padding: 20,
+    borderRadius: 18,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  cancelButtonText: {
+    color: 'white',
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  confirmButton: {
+    flex: 1.5,
+    padding: 20,
+    borderRadius: 18,
+    alignItems: 'center',
+    backgroundColor: '#D4AF37',
+  },
+  confirmButtonText: {
+    color: 'black',
+    fontWeight: '900',
+    fontSize: 12,
   }
 });

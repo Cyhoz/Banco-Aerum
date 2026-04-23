@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/api';
 import { motion } from 'framer-motion';
 import { Lock, Mail, User, Shield } from 'lucide-react';
@@ -55,16 +55,18 @@ const Auth = () => {
       <div className="be-top-bar" />
       
       <header className="be-header-container">
-        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 20px', display: 'flex', alignItems: 'center' }}>
-          <Shield size={32} color="var(--aerum-gold)" />
-          <div style={{ marginLeft: '12px' }}>
-            <h1 style={{ fontSize: '1.5rem', marginBottom: '0', color: 'var(--aerum-navy)', fontWeight: '800' }}>
-              BANCO<span style={{ color: 'var(--aerum-gold)' }}>AERUM</span>
-            </h1>
-            <p style={{ fontSize: '0.7rem', color: 'var(--aerum-gray-medium)', fontWeight: '600', letterSpacing: '0.1em', marginTop: '-2px' }}>
-              EXCELENCIA FINANCIERA
-            </p>
-          </div>
+        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 20px' }}>
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+            <Shield size={32} color="var(--aerum-gold)" />
+            <div style={{ marginLeft: '12px' }}>
+              <h1 style={{ fontSize: '1.5rem', marginBottom: '0', color: 'var(--aerum-navy)', fontWeight: '800' }}>
+                BANCO<span style={{ color: 'var(--aerum-gold)' }}>AERUM</span>
+              </h1>
+              <p style={{ fontSize: '0.7rem', color: 'var(--aerum-gray-medium)', fontWeight: '600', letterSpacing: '0.1em', marginTop: '-2px' }}>
+                EXCELENCIA FINANCIERA
+              </p>
+            </div>
+          </Link>
         </div>
       </header>
 

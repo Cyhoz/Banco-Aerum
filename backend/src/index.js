@@ -28,12 +28,14 @@ const authRoutes = require('./routes/auth');
 const accountRoutes = require('./routes/accounts');
 const transactionRoutes = require('./routes/transactions');
 const adminRoutes = require('./routes/admin');
+const interbankRoutes = require('./routes/interbank');
 
 // Usar rutas
 app.use('/api/auth', authRoutes);
 app.use('/api/accounts', accountRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/interbank', interbankRoutes);
 
 // Manejo de errores global
 app.use((err, req, res, next) => {

@@ -88,13 +88,13 @@ const Dashboard = () => {
       {/* Header */}
       <header className="be-header-container" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
             <Menu size={24} color="var(--aerum-navy)" style={{ marginRight: '16px' }} />
             <ShieldCheck color="var(--aerum-gold)" size={32} />
-            <h1 style={{ fontSize: '1.6rem', marginLeft: '10px', fontWeight: '800', letterSpacing: '-0.02em' }}>
+            <h1 style={{ fontSize: '1.6rem', marginLeft: '10px', fontWeight: '800', letterSpacing: '-0.02em', color: 'var(--aerum-navy)' }}>
               BANCO<span style={{ color: 'var(--aerum-gold)' }}>AERUM</span>
             </h1>
-          </div>
+          </Link>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
             <div style={{ textAlign: 'right', display: 'none', md: 'block' }}>
