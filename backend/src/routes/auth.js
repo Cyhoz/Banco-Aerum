@@ -38,7 +38,7 @@ const { supabase } = require('../config/supabase');
  *       400:
  *         description: Error en los datos proporcionados
  */
-router.post('/signup', async (req, res) => {
+router.post(['/signup', '/register'], async (req, res) => {
   const { email, password, full_name } = req.body;
 
   try {
