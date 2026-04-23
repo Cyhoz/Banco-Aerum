@@ -99,12 +99,13 @@ const Auth = () => {
             <div style={{ 
               padding: '12px', 
               borderRadius: '8px', 
-              background: '#FEF2F2', 
-              border: '1px solid #FEE2E2',
-              color: '#B91C1C',
+              background: error.includes('exitoso') ? '#ECFDF5' : '#FEF2F2', 
+              border: `1px solid ${error.includes('exitoso') ? '#A7F3D0' : '#FEE2E2'}`,
+              color: error.includes('exitoso') ? '#059669' : '#B91C1C',
               marginBottom: '24px',
               fontSize: '0.85rem',
-              textAlign: 'center'
+              textAlign: 'center',
+              fontWeight: '600'
             }}>
               {typeof error === 'string' ? error : (error.message || 'Error en la autenticación')}
             </div>
