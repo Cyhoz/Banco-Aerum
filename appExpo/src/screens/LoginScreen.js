@@ -1,12 +1,61 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { supabase } from '../../supabase';
-import { Mail, Lock, LogIn, ShieldCheck, ChevronLeft } from 'lucide-react-native';
+import { Mail, Lock, LogIn, ShieldCheck, ChevronLeft, Fingerprint } from 'lucide-react-native';
+import * as LocalAuthentication from 'expo-local-authentication';
+import * as SecureStore from 'expo-secure-store';
 
 export default function LoginScreen({ onLoginSuccess, onBack }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
+
+  useEffect(() => {
+    checkDeviceForHardware();
+  }, []);
+
+  const checkDeviceForHardware = async () => {
+    const compatible = await LocalAuthentication.hasHardwareAsync();
+    const enrolled = await LocalAuthentication.isEnrolledAsync();
+    setIsBiometricAvailable(compatible && enrolled);
+
+    // Si hay datos guardados, intentar login automático o al menos llenar los campos
+    const savedEmail = await SecureStore.getItemAsync('user_email');
+    if (savedEmail) setEmail(savedEmail);
+  };
+
+  const handleBiometricLogin = async () => {
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Acceso Biométrico - Banco Aerum',
+        fallbackLabel: 'Usar contraseña',
+        disableDeviceFallback: false,
+      });
+
+      if (result.success) {
+        setLoading(true);
+        const savedEmail = await SecureStore.getItemAsync('user_email');
+        const savedPass = await SecureStore.getItemAsync('user_password');
+
+        if (savedEmail && savedPass) {
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: savedEmail,
+            password: savedPass,
+          });
+
+          if (error) throw error;
+          onLoginSuccess(data.user);
+        } else {
+          Alert.alert('Configuración requerida', 'Inicie sesión con su contraseña una vez para activar la huella.');
+          setLoading(false);
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo autenticar');
+      setLoading(false);
+    }
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -22,7 +71,27 @@ export default function LoginScreen({ onLoginSuccess, onBack }) {
       });
 
       if (error) throw error;
-      onLoginSuccess(data.user);
+
+      // Preguntar si desea guardar para la próxima vez
+      if (isBiometricAvailable) {
+        Alert.alert(
+          'Acceso Rápido',
+          '¿Desea activar el acceso con huella digital para su próxima visita?',
+          [
+            { text: 'No, gracias', onPress: () => onLoginSuccess(data.user) },
+            { 
+              text: 'Sí, activar', 
+              onPress: async () => {
+                await SecureStore.setItemAsync('user_email', email);
+                await SecureStore.setItemAsync('user_password', password);
+                onLoginSuccess(data.user);
+              }
+            }
+          ]
+        );
+      } else {
+        onLoginSuccess(data.user);
+      }
     } catch (error) {
       Alert.alert('Error de acceso', error.message);
     } finally {
@@ -72,20 +141,32 @@ export default function LoginScreen({ onLoginSuccess, onBack }) {
           />
         </View>
 
-        <TouchableOpacity 
-          style={styles.button} 
-          onPress={handleLogin}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="black" />
-          ) : (
-            <View style={styles.buttonContent}>
-              <LogIn size={20} color="black" />
-              <Text style={styles.buttonText}>ACCEDER AL SISTEMA</Text>
-            </View>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <TouchableOpacity 
+            style={[styles.button, { flex: 1 }]} 
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="black" />
+            ) : (
+              <View style={styles.buttonContent}>
+                <LogIn size={20} color="black" />
+                <Text style={styles.buttonText}>ACCEDER</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {isBiometricAvailable && (
+            <TouchableOpacity 
+              style={styles.biometricButton} 
+              onPress={handleBiometricLogin}
+              disabled={loading}
+            >
+              <Fingerprint size={32} color="#D4AF37" />
+            </TouchableOpacity>
           )}
-        </TouchableOpacity>
+        </View>
 
         <View style={styles.registerLink}>
           <Text style={styles.registerText}>
@@ -181,6 +262,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 5,
+  },
+  biometricButton: {
+    backgroundColor: '#111',
+    height: 65,
+    width: 65,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 25,
+    borderWidth: 1,
+    borderColor: '#D4AF37',
   },
   buttonContent: {
     flexDirection: 'row',
