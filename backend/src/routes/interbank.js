@@ -70,4 +70,22 @@ router.post('/receive', async (req, res) => {
   }
 });
 
+/**
+ * Obtener lista de bancos externos habilitados
+ * GET /api/interbank/list
+ */
+router.get('/list', async (req, res) => {
+  try {
+    const { data: banks, error } = await supabaseAdmin
+      .from('external_banks')
+      .select('*');
+    
+    if (error) throw error;
+    res.json(banks || []);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener lista de bancos' });
+  }
+});
+
 module.exports = router;

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { supabase } from '../../supabase';
-import { Mail, Lock, LogIn, ShieldCheck } from 'lucide-react-native';
+import { Mail, Lock, LogIn, ShieldCheck, ChevronLeft } from 'lucide-react-native';
 
-export default function LoginScreen({ onLoginSuccess }) {
+export default function LoginScreen({ onLoginSuccess, onBack }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,6 +36,9 @@ export default function LoginScreen({ onLoginSuccess }) {
       style={styles.container}
     >
       <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={onBack}>
+          <ChevronLeft size={24} color="#D4AF37" />
+        </TouchableOpacity>
         <View style={styles.logoContainer}>
           <ShieldCheck size={44} color="black" />
         </View>
@@ -104,6 +107,17 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: 60,
+    width: '100%',
+  },
+  backButton: {
+    position: 'absolute',
+    left: 0,
+    top: -10,
+    backgroundColor: 'rgba(212, 175, 55, 0.05)',
+    padding: 12,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.1)',
   },
   logoContainer: {
     width: 90,

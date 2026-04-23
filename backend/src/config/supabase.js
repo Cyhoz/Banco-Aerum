@@ -9,5 +9,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabaseAdmin = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-module.exports = supabase;
+module.exports = { supabase, supabaseAdmin };

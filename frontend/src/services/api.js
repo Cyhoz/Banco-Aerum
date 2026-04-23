@@ -41,4 +41,8 @@ export const adminService = {
   deleteUser: (id) => api.delete(`/admin/users/${id}`),
 };
 
+export const interbankService = {
+  listBanks: () => api.get('/interbank/list'),
+};
+
 export default api;

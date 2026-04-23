@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const supabase = require('../config/supabase');
+const { supabase, supabaseAdmin } = require('../config/supabase');
 const authenticateToken = require('../middleware/authMiddleware');
 const axios = require('axios');
 
@@ -36,7 +36,7 @@ const SHARED_SECRET = process.env.INTERBANK_SECRET || 'CLAVE_SECRETA_CLASE_2026'
 router.get('/:account_id', authenticateToken, async (req, res) => {
   const { account_id } = req.params;
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('transactions')
       .select('*')
       .eq('account_id', account_id)
@@ -65,7 +65,7 @@ router.post('/interbank/receive', async (req, res) => {
 
   try {
     // 1. Buscar cuenta local
-    const { data: recipient, error: rError } = await supabase
+    const { data: recipient, error: rError } = await supabaseAdmin
       .from('accounts')
       .select('id, balance')
       .eq('account_number', cuenta_destino)
@@ -76,7 +76,7 @@ router.post('/interbank/receive', async (req, res) => {
     }
 
     // 2. Registrar transacción de entrada
-    await supabase.from('transactions').insert([{ 
+    await supabaseAdmin.from('transactions').insert([{ 
       account_id: recipient.id, 
       amount: monto, 
       description: descripcion || `Recibido de ${banco_origen}`, 
@@ -84,7 +84,7 @@ router.post('/interbank/receive', async (req, res) => {
     }]);
 
     // 3. Sumar saldo
-    await supabase.from('accounts').update({ balance: recipient.balance + monto }).eq('id', recipient.id);
+    await supabaseAdmin.from('accounts').update({ balance: recipient.balance + monto }).eq('id', recipient.id);
 
     res.json({ success: true, message: 'Transferencia interbancaria recibida con éxito' });
   } catch (err) {
@@ -132,7 +132,7 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 
   try {
-    const { data: senderAccount, error: senderError } = await supabase
+    const { data: senderAccount, error: senderError } = await supabaseAdmin
       .from('accounts')
       .select('id, balance, account_number')
       .eq('id', account_id)
@@ -166,14 +166,14 @@ router.post('/', authenticateToken, async (req, res) => {
 
           if (response.data.success) {
              // Registrar salida local
-             await supabase.from('transactions').insert([{ 
+             await supabaseAdmin.from('transactions').insert([{ 
                 account_id: senderAccount.id, 
                 amount, 
                 description: `Transferencia Interbancaria a cuenta ${recipient_account_number}`, 
                 type: 'TRANSFERENCIA' 
              }]);
              // Restar saldo
-             await supabase.from('accounts').update({ balance: senderAccount.balance - amount }).eq('id', senderAccount.id);
+             await supabaseAdmin.from('accounts').update({ balance: senderAccount.balance - amount }).eq('id', senderAccount.id);
              return res.json({ message: 'Transferencia interbancaria enviada con éxito', newBalance: senderAccount.balance - amount });
           }
         } catch (err) {
@@ -186,7 +186,7 @@ router.post('/', authenticateToken, async (req, res) => {
         return res.status(400).json({ error: 'No puedes transferir a tu propia cuenta' });
       }
 
-      const { data: recipientAccount, error: recipientError } = await supabase
+      const { data: recipientAccount, error: recipientError } = await supabaseAdmin
         .from('accounts')
         .select('id, balance')
         .eq('account_number', recipient_account_number)
@@ -196,22 +196,22 @@ router.post('/', authenticateToken, async (req, res) => {
         return res.status(404).json({ error: 'La cuenta no existe en Banco Aerum' });
       }
 
-      await supabase.from('transactions').insert([{ 
+      await supabaseAdmin.from('transactions').insert([{ 
         account_id: senderAccount.id, 
         amount, 
         description: description || `Transferencia enviada a ${recipient_account_number}`, 
         type: 'TRANSFERENCIA' 
       }]);
 
-      await supabase.from('transactions').insert([{ 
+      await supabaseAdmin.from('transactions').insert([{ 
         account_id: recipientAccount.id, 
         amount, 
         description: `Transferencia recibida de ${senderAccount.account_number}`, 
         type: 'CREDITO' 
       }]);
 
-      await supabase.from('accounts').update({ balance: senderAccount.balance - amount }).eq('id', senderAccount.id);
-      await supabase.from('accounts').update({ balance: recipientAccount.balance + amount }).eq('id', recipientAccount.id);
+      await supabaseAdmin.from('accounts').update({ balance: senderAccount.balance - amount }).eq('id', senderAccount.id);
+      await supabaseAdmin.from('accounts').update({ balance: recipientAccount.balance + amount }).eq('id', recipientAccount.id);
 
       return res.status(201).json({ message: 'Transferencia realizada con éxito', newBalance: senderAccount.balance - amount });
 
@@ -219,14 +219,21 @@ router.post('/', authenticateToken, async (req, res) => {
       const isSubtraction = type === 'DEBITO' || type === 'RETIRO';
       const newBalance = isSubtraction ? senderAccount.balance - amount : senderAccount.balance + amount;
 
-      const { data: transaction, error: tError } = await supabase
+      const { data: transaction, error: tError } = await supabaseAdmin
         .from('transactions')
         .insert([{ account_id, amount, description, type }])
         .select()
         .single();
 
       if (tError) return res.status(400).json({ error: tError.message });
-      await supabase.from('accounts').update({ balance: newBalance }).eq('id', account_id);
+      
+      console.log(`--- ACTUALIZANDO SALDO ---`);
+      console.log(`Cuenta ID: ${account_id}`);
+      console.log(`Nuevo Saldo Calculado: ${newBalance}`);
+      
+      const { error: uError } = await supabaseAdmin.from('accounts').update({ balance: newBalance }).eq('id', account_id);
+      if (uError) console.error('Error actualizando saldo:', uError.message);
+      
       res.status(201).json({ message: 'Operación realizada con éxito', transaction, newBalance });
     }
   } catch (err) {
@@ -256,7 +263,7 @@ router.get('/admin/all', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Acceso denegado: Se requieren permisos de administrador' });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('transactions')
       .select('*, accounts(account_number)')
       .order('created_at', { ascending: false });

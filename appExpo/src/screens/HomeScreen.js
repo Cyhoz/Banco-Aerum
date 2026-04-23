@@ -93,6 +93,8 @@ export default function HomeScreen({ user, onLogout, onNavigate }) {
       setLoading(true);
       const amount = parseFloat(depositAmount);
       
+      if (!account) throw new Error("No se pudo identificar la cuenta del usuario");
+
       const { error: txError } = await supabase.from('transactions').insert([{
         account_id: account.id,
         amount: amount,
@@ -157,11 +159,11 @@ export default function HomeScreen({ user, onLogout, onNavigate }) {
             </TouchableOpacity>
           </View>
           <Text style={styles.balanceText}>
-            {showSensitive ? `$ ${account?.balance?.toLocaleString() || '0'}` : '$ ••••••'}
+            {account ? (showSensitive ? `$ ${account.balance?.toLocaleString() || '0'}` : '$ ••••••') : '$ ---'}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 15 }}>
             <Text style={styles.accountNumber}>
-              {showSensitive ? (account?.account_number || '00000000') : '•••• ••••'}
+              {account ? (showSensitive ? (account.account_number || '00000000') : '•••• ••••') : 'Cargando...'}
             </Text>
             <Text style={[styles.accountNumber, { fontSize: 10, opacity: 0.6 }]}>TITULAR AERUM</Text>
           </View>

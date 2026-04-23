@@ -5,11 +5,13 @@ import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import TransferScreen from './src/screens/TransferScreen';
 import AdminScreen from './src/screens/AdminScreen';
+import WelcomeScreen from './src/screens/WelcomeScreen';
 
 export default function App() {
   const [user, setUser] = useState(null);
-  const [currentScreen, setCurrentScreen] = useState('home'); // home, transfer, history, admin
   const [loading, setLoading] = useState(true);
+  const [currentScreen, setCurrentScreen] = useState('home');
+  const [showLogin, setShowLogin] = useState(false);
 
   useEffect(() => {
     // Check active session
@@ -29,12 +31,16 @@ export default function App() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setShowLogin(false);
   };
 
   if (loading) return <View style={{ flex: 1, backgroundColor: '#0A0A0A' }} />;
 
   if (!user) {
-    return <LoginScreen onLoginSuccess={(u) => setUser(u)} />;
+    if (showLogin) {
+      return <LoginScreen onLoginSuccess={(u) => setUser(u)} onBack={() => setShowLogin(false)} />;
+    }
+    return <WelcomeScreen onStartLogin={() => setShowLogin(true)} />;
   }
 
   // Simple Router

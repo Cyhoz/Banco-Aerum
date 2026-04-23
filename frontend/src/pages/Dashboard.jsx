@@ -16,7 +16,8 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { accountService, transactionService } from '../services/api';
+import { accountService, transactionService, interbankService } from '../services/api';
+import { Globe, Building } from 'lucide-react';
 
 const Dashboard = () => {
   const [user] = useState(JSON.parse(localStorage.getItem('user')));
@@ -27,16 +28,34 @@ const Dashboard = () => {
   const [opType, setOpType] = useState('DEPOSIT'); 
   const [formData, setFormData] = useState({ amount: '', recipientAccount: '', description: '' });
   const [showAccountNumber, setShowAccountNumber] = useState(false);
+  const [banks, setBanks] = useState([{ id: 'internal', name: 'Banco Aerum (Interno)', is_external: false }]);
+  const [selectedBank, setSelectedBank] = useState(null);
+  const [customAlert, setCustomAlert] = useState({ show: false, message: '', type: 'success' });
+
 
   const fetchData = async () => {
     try {
       const accRes = await accountService.getAccounts();
+      console.log('--- ACCOUNT DATA RECEIVED ---', accRes.data);
       if (accRes.data && accRes.data.length > 0) {
         const myAcc = accRes.data[0];
-        setAccount(myAcc);
+        setAccount({...myAcc}); // Usamos spread para forzar re-render
+        
         const transRes = await transactionService.getTransactions(myAcc.id);
-        setTransactions(transRes.data);
+        setTransactions(transRes.data || []);
       }
+
+      // Cargar bancos externos
+      try {
+        const banksRes = await interbankService.listBanks();
+        if (banksRes.data) {
+          const formatted = banksRes.data.map(b => ({ ...b, is_external: true }));
+          setBanks([{ id: 'internal', name: 'Banco Aerum (Interno)', is_external: false }, ...formatted]);
+        }
+      } catch (e) { console.error("Error al cargar bancos", e); }
+      
+      setSelectedBank({ id: 'internal', name: 'Banco Aerum (Interno)', is_external: false });
+
     } catch (err) {
       console.error("Error fetching data", err);
     } finally {
@@ -48,7 +67,17 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (customAlert.show) {
+      const timer = setTimeout(() => {
+        setCustomAlert(prev => ({ ...prev, show: false }));
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [customAlert.show]);
+
   const handleLogout = () => {
+
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     window.location.href = '/auth';
@@ -57,33 +86,111 @@ const Dashboard = () => {
   const handleOperation = async (e) => {
     e.preventDefault();
     if (!account) return;
+    
+    // Para transferencias sí necesitamos un banco seleccionado, para depósitos no
+    if (opType === 'TRANSFER' && !selectedBank) {
+      alert("Por favor seleccione una institución");
+      return;
+    }
 
     try {
-      await transactionService.createTransaction({
-        account_id: account.id,
-        amount: parseFloat(formData.amount),
-        type: opType === 'DEPOSIT' ? 'CREDITO' : 'TRANSFERENCIA',
-        recipient_account_number: opType === 'TRANSFER' ? formData.recipientAccount : null,
-        external_url: opType === 'TRANSFER' ? formData.externalUrl : null,
-        description: formData.description || (opType === 'DEPOSIT' ? 'Depósito en Efectivo' : `Transferencia a ${formData.recipientAccount}`)
-      });
+      if (opType === 'TRANSFER' && selectedBank?.is_external) {
+        // --- LOGICA INTERBANCARIA (EXTERNA) ---
+        const cleanUrl = selectedBank.api_url.endsWith('/') ? selectedBank.api_url.slice(0, -1) : selectedBank.api_url;
+        
+        await transactionService.createTransaction({
+          account_id: account.id,
+          amount: parseFloat(formData.amount),
+          type: 'TRANSFERENCIA',
+          recipient_account_number: formData.recipientAccount,
+          external_url: cleanUrl,
+          description: `[Interbancario a ${selectedBank.name}] ${formData.description || ''}`
+        });
+      } else {
+        // --- LOGICA INTERNA (DEPÓSITOS Y TRANSFERENCIAS AERUM) ---
+        await transactionService.createTransaction({
+          account_id: account.id,
+          amount: parseFloat(formData.amount),
+          type: opType === 'DEPOSIT' ? 'CREDITO' : 'TRANSFERENCIA',
+          recipient_account_number: opType === 'TRANSFER' ? formData.recipientAccount : null,
+          description: formData.description || (opType === 'DEPOSIT' ? 'Depósito en Efectivo' : `Envío a ${formData.recipientAccount}`)
+        });
+      }
+
       setShowOpModal(false);
-      setFormData({ amount: '', recipientAccount: '', description: '', externalUrl: '' });
+      setFormData({ amount: '', recipientAccount: '', description: '' });
       fetchData();
+      setCustomAlert({ show: true, message: "Operación realizada con éxito", type: 'success' });
     } catch (err) {
-      alert(err.response?.data?.error || "Error en la operación");
+      setCustomAlert({ show: true, message: err.response?.data?.error || "Error en la operación", type: 'error' });
     }
+
   };
 
-  if (loading) return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--aerum-gray-light)' }}>
-      <div className="skeleton" style={{ width: '80px', height: '80px', borderRadius: '50%' }}></div>
-    </div>
-  );
+  // Removemos el bloqueo total de carga para que la UI siempre se vea
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--aerum-gray-light)' }}>
       <div className="be-top-bar" />
+
+
+      {/* Alerta Personalizada Premium */}
+      <AnimatePresence>
+        {customAlert.show && (
+          <motion.div 
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 20 }}
+            exit={{ opacity: 0, y: -50 }}
+            style={{
+              position: 'fixed',
+              top: '20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 2000,
+              width: '90%',
+              maxWidth: '400px'
+            }}
+          >
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(10px)',
+              padding: '20px',
+              borderRadius: '16px',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+              border: `2px solid ${customAlert.type === 'success' ? 'var(--aerum-gold)' : '#ff4d4d'}`,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px'
+            }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: customAlert.type === 'success' ? 'var(--aerum-gold)' : '#ff4d4d',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white'
+              }}>
+                {customAlert.type === 'success' ? <ShieldCheck size={24} /> : <EyeOff size={24} />}
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontWeight: '700', color: 'var(--aerum-navy)', margin: 0 }}>
+                  {customAlert.type === 'success' ? 'ÉXITO' : 'ERROR'}
+                </p>
+                <p style={{ fontSize: '0.9rem', color: '#666', margin: 0 }}>{customAlert.message}</p>
+              </div>
+              <button 
+                onClick={() => setCustomAlert({ ...customAlert, show: false })}
+                style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer' }}
+              >
+                <Plus style={{ transform: 'rotate(45deg)' }} size={20} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       
       {/* Header */}
       <header className="be-header-container" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
@@ -133,7 +240,7 @@ const Dashboard = () => {
                 <p style={{ color: 'var(--aerum-gray-medium)', fontSize: '0.85rem', fontWeight: '700', letterSpacing: '0.05em' }}>SALDO TOTAL DISPONIBLE</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px' }}>
                    <p style={{ fontSize: '0.9rem', color: 'var(--aerum-navy)', fontFamily: 'monospace', fontWeight: '700' }}>
-                    {showAccountNumber ? account?.account_number : `**** **** ${account?.account_number?.slice(-4)}`}
+                    {account ? (showAccountNumber ? account.account_number : `**** **** ${account.account_number?.slice(-4)}`) : 'Cargando...'}
                    </p>
                    <button onClick={() => setShowAccountNumber(!showAccountNumber)} style={{ background: 'none', color: 'var(--aerum-gold)' }}>
                     {showAccountNumber ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -145,10 +252,20 @@ const Dashboard = () => {
               </div>
             </div>
             
-            <h1 style={{ fontSize: '3.5rem', color: 'var(--aerum-navy)', display: 'flex', alignItems: 'baseline' }}>
-              <span style={{ fontSize: '1.5rem', marginRight: '6px', color: 'var(--aerum-gold)' }}>$</span>
-              {account?.balance?.toLocaleString()}
-            </h1>
+
+             {console.log('Balance actual en render:', account?.balance)}
+             <h1 style={{ 
+               fontSize: '3.5rem', 
+               color: account?.balance > 0 ? 'var(--aerum-gold)' : 'var(--aerum-navy)', 
+               display: 'flex', 
+               alignItems: 'baseline', 
+               fontWeight: 'bold' 
+             }}>
+               <span style={{ fontSize: '1.5rem', marginRight: '6px', color: 'var(--aerum-gold)' }}>$</span>
+               {account?.balance !== undefined && account?.balance !== null ? account.balance.toLocaleString() : '0'}
+             </h1>
+
+
             
             <div style={{ marginTop: '32px', display: 'flex', gap: '16px' }}>
               <button 
@@ -272,9 +389,35 @@ const Dashboard = () => {
               style={{ width: '90%', maxWidth: '440px', borderTop: '6px solid var(--aerum-navy)' }}
             >
               <h2 style={{ marginBottom: '28px', fontSize: '1.5rem', fontWeight: '800' }}>
-                {opType === 'DEPOSIT' ? 'Confirmar Depósito' : 'Transferencia Aerum'}
+                {opType === 'DEPOSIT' ? 'Confirmar Depósito' : 'Nueva Transferencia'}
               </h2>
               <form onSubmit={handleOperation}>
+                {opType === 'TRANSFER' && (
+                  <div style={{ marginBottom: '24px' }}>
+                    <label style={{ display: 'block', marginBottom: '12px', fontSize: '0.85rem', fontWeight: '700', color: 'var(--aerum-gray-medium)' }}>
+                      SELECCIONAR INSTITUCIÓN DESTINO
+                    </label>
+                    <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '10px', scrollbarWidth: 'none' }}>
+                      {banks.map(bank => (
+                        <div 
+                          key={bank.id} 
+                          onClick={() => setSelectedBank(bank)}
+                          style={{ 
+                            flex: '0 0 auto', padding: '12px 20px', borderRadius: '12px', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '10px',
+                            background: selectedBank?.id === bank.id ? 'var(--aerum-gold)' : 'var(--aerum-gray-light)',
+                            color: selectedBank?.id === bank.id ? 'var(--aerum-navy)' : 'var(--aerum-gray-medium)',
+                            border: `2px solid ${selectedBank?.id === bank.id ? 'var(--aerum-gold)' : 'transparent'}`,
+                            transition: 'all 0.2s ease', fontWeight: '700', fontSize: '0.9rem'
+                          }}
+                        >
+                          {bank.is_external ? <Globe size={16} /> : <Building size={16} />}
+                          {bank.name}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div style={{ marginBottom: '20px' }}>
                   <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '700', color: 'var(--aerum-gray-medium)' }}>MONTO A TRANSACCIONAR</label>
                   <div style={{ position: 'relative' }}>
@@ -291,30 +434,17 @@ const Dashboard = () => {
                 </div>
                 
                 {opType === 'TRANSFER' && (
-                  <>
-                    <div style={{ marginBottom: '20px' }}>
-                      <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '700', color: 'var(--aerum-gray-medium)' }}>CUENTA DE DESTINO</label>
-                      <input 
-                        type="text" 
-                        placeholder="99-XXXX-XXXX"
-                        required
-                        style={{ width: '100%', padding: '14px', border: '1px solid var(--aerum-border)', borderRadius: '8px' }}
-                        value={formData.recipientAccount}
-                        onChange={(e) => setFormData({...formData, recipientAccount: e.target.value})}
-                      />
-                    </div>
-                    <div style={{ marginBottom: '20px' }}>
-                      <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '700', color: 'var(--aerum-gray-medium)' }}>URL DEL BANCO DESTINO (OPCIONAL)</label>
-                      <input 
-                        type="text" 
-                        placeholder="https://banco-compañero.vercel.app"
-                        style={{ width: '100%', padding: '14px', border: '1px solid var(--aerum-gold)', borderRadius: '8px', background: 'rgba(225, 161, 26, 0.05)' }}
-                        value={formData.externalUrl}
-                        onChange={(e) => setFormData({...formData, externalUrl: e.target.value})}
-                      />
-                      <p style={{ fontSize: '0.7rem', color: 'var(--aerum-gold)', marginTop: '4px' }}>Déjalo en blanco para transferencias dentro de Aerum.</p>
-                    </div>
-                  </>
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '700', color: 'var(--aerum-gray-medium)' }}>CUENTA DE DESTINO</label>
+                    <input 
+                      type="text" 
+                      placeholder="99-XXXX-XXXX"
+                      required
+                      style={{ width: '100%', padding: '14px', border: '1px solid var(--aerum-border)', borderRadius: '8px' }}
+                      value={formData.recipientAccount}
+                      onChange={(e) => setFormData({...formData, recipientAccount: e.target.value})}
+                    />
+                  </div>
                 )}
 
                 <div style={{ marginBottom: '32px' }}>
@@ -330,7 +460,9 @@ const Dashboard = () => {
 
                 <div style={{ display: 'flex', gap: '16px' }}>
                   <button type="button" onClick={() => setShowOpModal(false)} style={{ flex: 1, padding: '14px', background: 'var(--aerum-gray-light)', color: 'var(--aerum-gray-dark)', fontWeight: '700' }}>ANULAR</button>
-                  <button type="submit" className="gold-button" style={{ flex: 1.5, padding: '14px' }}>EJECUTAR</button>
+                  <button type="submit" className="gold-button" style={{ flex: 1.5, padding: '14px' }}>
+                    {opType === 'DEPOSIT' ? 'CONFIRMAR DEPÓSITO' : 'EJECUTAR TRANSFERENCIA'}
+                  </button>
                 </div>
               </form>
             </motion.div>

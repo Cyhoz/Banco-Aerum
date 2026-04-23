@@ -1,40 +1,47 @@
 const express = require('express');
 const router = express.Router();
-const supabase = require('../config/supabase');
+const { supabase, supabaseAdmin } = require('../config/supabase');
 const authenticateToken = require('../middleware/authMiddleware');
 
-/**
- * @swagger
- * tags:
- *   name: Accounts
- *   description: Gestión de cuentas bancarias
- */
-
-/**
- * @swagger
- * /api/accounts:
- *   get:
- *     summary: Obtener todas las cuentas del usuario autenticado
- *     tags: [Accounts]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Lista de cuentas obtenida con éxito
- *       401:
- *         description: No autorizado
- */
 router.get('/', authenticateToken, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  
+  console.log('--- FETCHING ACCOUNTS ---');
+  console.log('User ID from token:', req.user.id);
   try {
-    const { data, error } = await supabase
+    // 1. Intentar obtener cuentas existentes
+    let { data, error } = await supabaseAdmin
       .from('accounts')
       .select('*')
       .eq('user_id', req.user.id);
 
     if (error) return res.status(400).json({ error: error.message });
+
+    // 2. Si no hay cuentas, crear una automáticamente (Self-healing)
+    if (!data || data.length === 0) {
+      console.log(`Auto-creando cuenta para usuario: ${req.user.id}`);
+      const accountNumber = '99' + Math.floor(10000000 + Math.random() * 90000000);
+      const { data: newAcc, error: createError } = await supabaseAdmin
+        .from('accounts')
+        .insert([
+          { 
+            user_id: req.user.id, 
+            account_number: accountNumber, 
+            balance: 50.00 
+          }
+        ])
+        .select();
+
+      if (createError) throw createError;
+      data = newAcc;
+    }
+
     res.status(200).json(data);
   } catch (err) {
-    res.status(500).json({ error: 'Error al obtener las cuentas' });
+    console.error('Error en /api/accounts:', err);
+    res.status(500).json({ error: 'Error al procesar las cuentas' });
   }
 });
 

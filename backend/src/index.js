@@ -43,13 +43,10 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Algo salió mal en el servidor' });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
-// Solo iniciar el servidor si no estamos en Vercel
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-  app.listen(PORT, () => {
-    console.log(`Servidor de Banca en Línea corriendo en el puerto ${PORT}`);
-  });
-}
+app.listen(PORT, () => {
+  console.log(`Servidor de Banca en Línea corriendo en el puerto ${PORT}`);
+});
 
 module.exports = app;
