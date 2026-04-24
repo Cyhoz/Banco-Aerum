@@ -90,17 +90,6 @@ const Dashboard = () => {
     window.location.href = '/auth';
   };
 
-  const handleOperation = async (e) => {
-    e.preventDefault();
-    if (!account) return;
-    
-    // Para transferencias sí necesitamos un banco seleccionado, para depósitos no
-    if (opType === 'TRANSFER' && !selectedBank) {
-      alert("Por favor seleccione una institución");
-      return;
-    }
-
-    // Capturar metadatos forenses
     const getAuditMetadata = async () => {
       const ua = navigator.userAgent;
       let browser = "Desconocido";
@@ -137,12 +126,28 @@ const Dashboard = () => {
       setLocationPermission(agreed);
       localStorage.setItem('location_audit', agreed.toString());
       setShowLocationPrompt(false);
+      
+      // Si acepta, pedir permiso al navegador inmediatamente para "despertarlo"
+      if (agreed) {
+        navigator.geolocation.getCurrentPosition(() => {}, () => {});
+      }
+
       setCustomAlert({ 
         show: true, 
         message: agreed ? "Auditoría de ubicación activada" : "Ubicación desactivada para auditoría", 
         type: agreed ? 'success' : 'error' 
       });
     };
+
+  const handleOperation = async (e) => {
+    e.preventDefault();
+    if (!account) return;
+    
+    // Para transferencias sí necesitamos un banco seleccionado, para depósitos no
+    if (opType === 'TRANSFER' && !selectedBank) {
+      alert("Por favor seleccione una institución");
+      return;
+    }
 
     try {
       const audit = await getAuditMetadata();
