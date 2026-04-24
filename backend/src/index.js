@@ -43,10 +43,12 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Algo salió mal en el servidor' });
 });
 
-const PORT = process.env.PORT || 5001;
-
-app.listen(PORT, () => {
-  console.log(`Servidor de Banca en Línea corriendo en el puerto ${PORT}`);
-});
+// Solo iniciar el servidor si este archivo se ejecuta directamente
+if (require.main === module) {
+  const PORT = process.env.PORT || 5001;
+  app.listen(PORT, () => {
+    console.log(`Servidor de Banca en Línea corriendo en el puerto ${PORT}`);
+  });
+}
 
 module.exports = app;

@@ -52,8 +52,8 @@ export default function HomeScreen({ user, onLogout, onNavigate }) {
         setHistory(txs);
       }
     } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'No se pudieron cargar los datos');
+      console.error("DEBUG FETCH ERROR:", error);
+      Alert.alert('Error de Conexión', error.message || 'Error desconocido al cargar datos');
     } finally {
       setLoading(false);
       setRefreshing(false);
