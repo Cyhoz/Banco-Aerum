@@ -1,6 +1,6 @@
-const { supabase } = require('../config/supabase');
+const jwt = require('jsonwebtoken');
 
-const authenticateToken = async (req, res, next) => {
+const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -9,16 +9,12 @@ const authenticateToken = async (req, res, next) => {
   }
 
   try {
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-
-    if (error || !user) {
-      return res.status(403).json({ error: 'Token inválido o expirado' });
-    }
-
-    req.user = user;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
     next();
   } catch (err) {
-    return res.status(500).json({ error: 'Error al validar el token' });
+    console.error('JWT Error:', err.message);
+    return res.status(403).json({ error: 'Token inválido, alterado o expirado' });
   }
 };
 

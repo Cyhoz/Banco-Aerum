@@ -134,9 +134,20 @@ router.post('/login', async (req, res) => {
         ]);
     }
 
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign(
+      { 
+        id: data.user.id, 
+        email: data.user.email,
+        role: data.user.user_metadata?.role || 'user'
+      }, 
+      process.env.JWT_SECRET, 
+      { expiresIn: '24h' }
+    );
+
     res.status(200).json({ 
       message: 'Inicio de sesión exitoso', 
-      token: data.session.access_token,
+      token: token,
       user: data.user 
     });
   } catch (err) {

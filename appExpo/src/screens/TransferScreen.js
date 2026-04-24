@@ -24,9 +24,13 @@ export default function TransferScreen({ user, onBack }) {
         const { data: extBanks, error: bankError } = await supabase.from('external_banks').select('*');
         if (bankError) {
           console.error("ERROR FETCHING BANKS:", bankError.message);
+          Alert.alert("Error de Bancos", bankError.message);
         } else if (extBanks) {
-          const formattedExt = extBanks.map(b => ({ ...b, is_external: true }));
-          setBanks([{ id: 'internal', name: 'Banco Aerum (Interno)', is_external: false }, ...formattedExt]);
+          console.log("BANCOS ENCONTRADOS:", extBanks.length);
+          if (extBanks.length > 0) {
+            const formattedExt = extBanks.map(b => ({ ...b, is_external: true }));
+            setBanks([{ id: 'internal', name: 'Banco Aerum (Interno)', is_external: false }, ...formattedExt]);
+          }
         }
       } catch (e) {
         console.warn("Error en init banks:", e.message);
@@ -219,7 +223,7 @@ const styles = StyleSheet.create({
   senderCard: { backgroundColor: '#111', padding: 28, borderRadius: 24, marginBottom: 35, borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.2)' },
   senderLabel: { color: '#D4AF37', fontSize: 10, marginBottom: 10, fontWeight: '800', letterSpacing: 1 },
   senderBalance: { color: 'white', fontSize: 32, fontWeight: '800' },
-  bankList: { marginBottom: 25, maxHeight: 60 },
+  bankList: { marginBottom: 25, minHeight: 70, maxHeight: 90 },
   bankItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#111', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 15, marginRight: 10, gap: 10, height: 50, borderWidth: 1, borderColor: '#222' },
   selectedBankItem: { backgroundColor: '#D4AF37', borderColor: '#D4AF37' },
   bankText: { color: '#666', fontWeight: '800', fontSize: 13 },
