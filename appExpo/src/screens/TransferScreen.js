@@ -190,8 +190,17 @@ export default function TransferScreen({ user, onBack }) {
             onPress={handleTransfer} 
             disabled={loading}
           >
-            {loading ? <ActivityIndicator color="black" /> : <Send size={20} color="black" />}
-            <Text style={styles.transferButtonText}>EJECUTAR TRANSFERENCIA</Text>
+            {loading ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <ActivityIndicator color="black" />
+                <Text style={styles.transferButtonText}>CONECTANDO...</Text>
+              </View>
+            ) : (
+              <>
+                <Send size={20} color="black" />
+                <Text style={styles.transferButtonText}>EJECUTAR TRANSFERENCIA</Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
