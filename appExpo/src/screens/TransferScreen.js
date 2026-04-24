@@ -21,13 +21,15 @@ export default function TransferScreen({ user, onBack }) {
 
       // 2. Fetch external banks from Supabase
       try {
-        const { data: extBanks } = await supabase.from('external_banks').select('*');
-        if (extBanks) {
+        const { data: extBanks, error: bankError } = await supabase.from('external_banks').select('*');
+        if (bankError) {
+          console.error("ERROR FETCHING BANKS:", bankError.message);
+        } else if (extBanks) {
           const formattedExt = extBanks.map(b => ({ ...b, is_external: true }));
           setBanks([{ id: 'internal', name: 'Banco Aerum (Interno)', is_external: false }, ...formattedExt]);
         }
       } catch (e) {
-        console.log("No external banks table found yet");
+        console.warn("Error en init banks:", e.message);
       }
       setSelectedBank({ id: 'internal', name: 'Banco Aerum (Interno)', is_external: false });
     };
