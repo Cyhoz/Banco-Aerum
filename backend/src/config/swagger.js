@@ -10,9 +10,13 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:5000',
-        description: 'Servidor Local',
+        url: 'http://localhost:5001',
+        description: 'Servidor Local (Desarrollo)',
       },
+      {
+        url: '/api',
+        description: 'Servidor de Producción (Vercel)',
+      }
     ],
     components: {
       securitySchemes: {

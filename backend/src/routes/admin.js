@@ -92,6 +92,49 @@ router.post('/users', async (req, res) => {
 /**
  * @swagger
  * /api/admin/users/{id}:
+ *   put:
+ *     summary: Actualizar datos de un usuario (Solo Admin)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               full_name:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Usuario actualizado con éxito
+ */
+router.put('/users/:id', async (req, res) => {
+  const { id } = req.params;
+  const { full_name, role } = req.body;
+  try {
+    const { data, error } = await supabaseAdmin.auth.admin.updateUserById(id, {
+      user_metadata: { full_name, role }
+    });
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ message: 'Usuario actualizado con éxito', user: data.user });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al actualizar usuario' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/admin/users/{id}:
  *   delete:
  *     summary: Eliminar un usuario (Solo Admin)
  *     tags: [Admin]

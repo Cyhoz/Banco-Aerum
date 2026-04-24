@@ -3,6 +3,20 @@ const router = express.Router();
 const { supabase, supabaseAdmin } = require('../config/supabase');
 const authenticateToken = require('../middleware/authMiddleware');
 
+/**
+ * @swagger
+ * /api/accounts:
+ *   get:
+ *     summary: Obtener cuentas del usuario (con autocuración)
+ *     tags: [Accounts]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de cuentas obtenida con éxito
+ *       401:
+ *         description: No autorizado
+ */
 router.get('/', authenticateToken, async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');

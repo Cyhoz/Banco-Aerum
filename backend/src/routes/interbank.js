@@ -12,8 +12,44 @@ const supabaseAdmin = createClient(
 const INTERBANK_KEY = "AERUM-BRIDGE-2026";
 
 /**
- * Endpoint para recibir dinero de otros bancos
- * POST /api/interbank/receive
+ * @swagger
+ * tags:
+ *   name: Interbank
+ *   description: Comunicación y transferencias entre bancos de la red
+ */
+
+/**
+ * @swagger
+ * /api/interbank/receive:
+ *   post:
+ *     summary: Recibir fondos de un banco externo
+ *     tags: [Interbank]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - account_number
+ *               - amount
+ *               - api_key
+ *             properties:
+ *               account_number:
+ *                 type: string
+ *               amount:
+ *                 type: number
+ *               from_bank:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               api_key:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Transferencia recibida con éxito
+ *       401:
+ *         description: API Key inválida
  */
 router.post('/receive', async (req, res) => {
   const { account_number, amount, from_bank, description, api_key } = req.body;

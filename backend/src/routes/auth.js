@@ -104,6 +104,32 @@ router.post(['/signup', '/register'], async (req, res) => {
  *       400:
  *         description: Credenciales inválidas
  */
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Iniciar sesión y obtener JWT
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Inicio de sesión exitoso, devuelve JWT
+ *       401:
+ *         description: Credenciales inválidas
+ */
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
@@ -165,7 +191,36 @@ router.post('/login', async (req, res) => {
  *       200:
  *         description: Sesión cerrada correctamente
  */
-router.post('/logout', async (req, res) => {
+/**
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     summary: Registrar un nuevo usuario
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - full_name
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               full_name:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Usuario registrado con éxito
+ *       400:
+ *         description: Error en el registro
+ */
+router.post('/signup', async (req, res) => {
   try {
     const { error } = await supabase.auth.signOut();
     if (error) return res.status(400).json({ error: error.message });
