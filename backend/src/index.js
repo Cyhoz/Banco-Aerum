@@ -20,8 +20,6 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'Servidor activo', timestamp: new Date() });
 });
 
-// Documentación Swagger
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 // Importar rutas (se crearán a continuación)
 const authRoutes = require('./routes/auth');
@@ -30,12 +28,16 @@ const transactionRoutes = require('./routes/transactions');
 const adminRoutes = require('./routes/admin');
 const interbankRoutes = require('./routes/interbank');
 
-// Usar rutas
-app.use('/api/auth', authRoutes);
-app.use('/api/accounts', accountRoutes);
-app.use('/api/transactions', transactionRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/interbank', interbankRoutes);
+// Detectar prefijo según el entorno
+const apiPrefix = process.env.VERCEL ? '' : '/api';
+
+// Usar rutas con prefijo inteligente
+app.use(`${apiPrefix}/auth`, authRoutes);
+app.use(`${apiPrefix}/accounts`, accountRoutes);
+app.use(`${apiPrefix}/transactions`, transactionRoutes);
+app.use(`${apiPrefix}/admin`, adminRoutes);
+app.use(`${apiPrefix}/interbank`, interbankRoutes);
+app.use(`${apiPrefix}/api-docs`, swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 // Manejo de errores global
 app.use((err, req, res, next) => {
