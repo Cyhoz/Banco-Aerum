@@ -194,9 +194,22 @@ const AdminDashboard = () => {
                       </div>
                     </td>
                     <td style={{ padding: '20px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#6366F1' }}>
-                        <MapPin size={14} />
-                        <span style={{ fontSize: '0.75rem', fontWeight: '600' }}>{t.location || 'Privada'}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <MapPin size={14} color="#6366F1" />
+                        {t.location && t.location.includes(',') ? (
+                          <a 
+                            href={`https://www.google.com/maps?q=${t.location}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            style={{ fontSize: '0.75rem', fontWeight: '600', color: '#6366F1', textDecoration: 'none' }}
+                          >
+                            Ver Mapa
+                          </a>
+                        ) : (
+                          <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--aerum-gray-medium)' }}>
+                            {t.location || 'Privada'}
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td style={{ padding: '20px', fontWeight: '500', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.description}</td>

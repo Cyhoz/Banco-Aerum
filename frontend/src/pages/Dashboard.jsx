@@ -31,6 +31,8 @@ const Dashboard = () => {
   const [banks, setBanks] = useState([{ id: 'internal', name: 'Banco Aerum (Interno)', is_external: false }]);
   const [selectedBank, setSelectedBank] = useState(null);
   const [customAlert, setCustomAlert] = useState({ show: false, message: '', type: 'success' });
+  const [locationPermission, setLocationPermission] = useState(localStorage.getItem('location_audit') === 'true');
+  const [showLocationPrompt, setShowLocationPrompt] = useState(localStorage.getItem('location_audit') === null);
 
 
   const fetchData = async () => {
@@ -112,17 +114,34 @@ const Dashboard = () => {
         device = "Móvil / Tablet";
       }
 
-      let location = "Privada / No permitida";
-      try {
-        const pos = await new Promise((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000 });
-        });
-        location = `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
-      } catch (e) {
-        console.warn("Geolocalización no disponible", e.message);
+      let location = "No autorizada";
+      if (locationPermission) {
+        try {
+          const pos = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { 
+              enableHighAccuracy: true,
+              timeout: 5000 
+            });
+          });
+          location = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+        } catch (e) {
+          console.warn("Geolocalización falló", e.message);
+          location = "Error / GPS Desactivado";
+        }
       }
 
       return { browser, device, location };
+    };
+
+    const handleLocationConsent = (agreed) => {
+      setLocationPermission(agreed);
+      localStorage.setItem('location_audit', agreed.toString());
+      setShowLocationPrompt(false);
+      setCustomAlert({ 
+        show: true, 
+        message: agreed ? "Auditoría de ubicación activada" : "Ubicación desactivada para auditoría", 
+        type: agreed ? 'success' : 'error' 
+      });
     };
 
     try {
@@ -522,6 +541,46 @@ const Dashboard = () => {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* Location Audit Prompt */}
+      <AnimatePresence>
+        {showLocationPrompt && (
+          <div style={{ 
+            position: 'fixed', bottom: '24px', right: '24px', zIndex: 1500,
+            width: '90%', maxWidth: '350px'
+          }}>
+            <motion.div 
+              initial={{ x: 100, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 100, opacity: 0 }}
+              className="luxury-card"
+              style={{ padding: '24px', borderLeft: '6px solid var(--aerum-gold)' }}
+            >
+              <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
+                <Globe color="var(--aerum-gold)" size={24} />
+                <h4 style={{ margin: 0, color: 'var(--aerum-navy)', fontWeight: '800' }}>Auditoría Forense</h4>
+              </div>
+              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '20px', lineHeight: '1.4' }}>
+                ¿Desea activar la geolocalización para mayor seguridad en sus transacciones? Esto permite rastrear el origen de las operaciones en caso de fraude.
+              </p>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button 
+                  onClick={() => handleLocationConsent(false)}
+                  style={{ flex: 1, padding: '10px', fontSize: '0.8rem', background: '#f0f0f0', color: '#666', borderRadius: '8px', border: 'none', cursor: 'pointer' }}
+                >
+                  NO ACTIVAR
+                </button>
+                <button 
+                  onClick={() => handleLocationConsent(true)}
+                  className="gold-button"
+                  style={{ flex: 1.5, padding: '10px', fontSize: '0.8rem' }}
+                >
+                  ACTIVAR GPS
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

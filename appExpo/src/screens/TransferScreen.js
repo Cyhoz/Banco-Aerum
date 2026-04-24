@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { supabase } from '../../supabase';
+import { supabase, supabaseAdmin } from '../../supabase';
 import { ChevronLeft, Send, Search, Building2, Globe } from 'lucide-react-native';
 import * as Device from 'expo-device';
+import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function TransferScreen({ user, onBack }) {
   const [banks, setBanks] = useState([{ id: 'internal', name: 'Banco Aerum (Interno)', is_external: false }]);
@@ -12,6 +14,9 @@ export default function TransferScreen({ user, onBack }) {
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [senderAccount, setSenderAccount] = useState(null);
+
+  // Reemplaza esto con tu URL real de Vercel
+  const API_URL = 'https://banco-aerum.vercel.app/api';
 
   useEffect(() => {
     const init = async () => {
@@ -57,73 +62,53 @@ export default function TransferScreen({ user, onBack }) {
       const audit = {
         browser: `Expo App ${Platform.OS}`,
         device: `${Device.brand} ${Device.modelName}`,
-        location: `Plataforma ${Platform.OS} ${Platform.Version}`
+        location: await getLocationAudit()
       };
 
-      if (selectedBank.is_external) {
-        // --- LÓGICA INTERBANCARIA (EXTERNA) ---
-        const cleanUrl = selectedBank.api_url.endsWith('/') ? selectedBank.api_url.slice(0, -1) : selectedBank.api_url;
-        const response = await fetch(`${cleanUrl}/receive`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            account_number: recipientAccount,
-            amount: transferAmount,
-            from_bank: 'Banco Aerum Mobile',
-            description: description || 'Transferencia desde Dispositivo Móvil',
-            api_key: selectedBank.api_key
-          })
-        });
+      // Obtener el token de sesión actual
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Sesión expirada. Por favor reingrese.');
 
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'El banco destino rechazó la operación');
-
-        // Registrar salida local con auditoría
-        await supabase.from('transactions').insert([{
-          account_id: senderAccount.id, 
-          amount: transferAmount, 
+      const response = await fetch(`${API_URL}/transactions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          account_id: senderAccount.id,
+          amount: transferAmount,
           type: 'TRANSFERENCIA',
-          description: `Interbancario a ${selectedBank.name}: ${recipientAccount}`,
+          description: description || (selectedBank.is_external ? `Interbancario a ${selectedBank.name}` : `Transferencia a ${recipientAccount}`),
+          recipient_account_number: recipientAccount,
+          external_url: selectedBank.is_external ? selectedBank.api_url : null,
           ...audit
-        }]);
-        await supabase.from('accounts').update({ balance: senderAccount.balance - transferAmount }).eq('id', senderAccount.id);
+        })
+      });
 
-      } else {
-        // --- LÓGICA INTERNA (AERUM) ---
-        const { data: recipient, error: recError } = await supabase
-          .from('accounts').select('id, balance').eq('account_number', recipientAccount).single();
-        
-        if (recError || !recipient) throw new Error('La cuenta no existe en Banco Aerum');
-        if (recipient.id === senderAccount.id) throw new Error('No puede transferir a su propia cuenta');
-
-        // Emisor
-        await supabase.from('transactions').insert([{
-          account_id: senderAccount.id, 
-          amount: transferAmount, 
-          type: 'TRANSFERENCIA',
-          description: description || `Envío a ${recipientAccount}`,
-          ...audit
-        }]);
-        await supabase.from('accounts').update({ balance: senderAccount.balance - transferAmount }).eq('id', senderAccount.id);
-        
-        // Receptor
-        await supabase.from('transactions').insert([{
-          account_id: recipient.id, 
-          amount: transferAmount, 
-          type: 'CREDITO',
-          description: `Recibido de ${senderAccount.account_number}`,
-          browser: 'App Móvil (Recibido)',
-          device: 'Red Banco Aerum',
-          location: 'Interno'
-        }]);
-        await supabase.from('accounts').update({ balance: recipient.balance + transferAmount }).eq('id', recipient.id);
-      }
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'La operación fue rechazada por el servidor');
 
       Alert.alert('Éxito', 'Operación completada con éxito', [{ text: 'ENTENDIDO', onPress: onBack }]);
     } catch (err) {
       Alert.alert('Error en Operación', err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getLocationAudit = async () => {
+    try {
+      const consent = await AsyncStorage.getItem('location_audit');
+      if (consent !== 'true') return 'No autorizada';
+
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return 'Permiso denegado';
+      
+      let loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      return `${loc.coords.latitude.toFixed(6)}, ${loc.coords.longitude.toFixed(6)}`;
+    } catch (e) {
+      return 'Error GPS';
     }
   };
 

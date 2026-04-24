@@ -4,6 +4,8 @@ import { supabase } from '../../supabase';
 import { Wallet, ArrowUpRight, ArrowDownLeft, Plus, Bell, LogOut, ShieldCheck, Eye, EyeOff } from 'lucide-react-native';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
+import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function HomeScreen({ user, onLogout, onNavigate }) {
   const [account, setAccount] = useState(null);
@@ -11,6 +13,8 @@ export default function HomeScreen({ user, onLogout, onNavigate }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showSensitive, setShowSensitive] = useState(true);
+  const [locationPermission, setLocationPermission] = useState(false);
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
 
   const [isDepositModalVisible, setIsDepositModalVisible] = useState(false);
   const [depositAmount, setDepositAmount] = useState('');
@@ -60,8 +64,18 @@ export default function HomeScreen({ user, onLogout, onNavigate }) {
     }
   };
 
+  const checkLocationPermission = async () => {
+    const consent = await AsyncStorage.getItem('location_audit');
+    if (consent === null) {
+      setShowLocationPrompt(true);
+    } else {
+      setLocationPermission(consent === 'true');
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    checkLocationPermission();
 
     // Suscripción en tiempo real para cambios en la cuenta
     const accountSubscription = supabase
@@ -118,7 +132,7 @@ export default function HomeScreen({ user, onLogout, onNavigate }) {
         type: 'CREDITO',
         browser: `Expo App ${Platform.OS}`,
         device: `${Device.brand} ${Device.modelName}`,
-        location: `Plataforma ${Platform.OS} ${Platform.Version}`
+        location: await getLocationAudit()
       }]);
       
       if (txError) throw txError;
@@ -138,6 +152,28 @@ export default function HomeScreen({ user, onLogout, onNavigate }) {
       Alert.alert("Error", err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getLocationAudit = async () => {
+    if (!locationPermission) return 'No autorizada';
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return 'Permiso denegado';
+      
+      let loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      return `${loc.coords.latitude.toFixed(6)}, ${loc.coords.longitude.toFixed(6)}`;
+    } catch (e) {
+      return 'Error GPS';
+    }
+  };
+
+  const handleLocationConsent = async (agreed) => {
+    setLocationPermission(agreed);
+    await AsyncStorage.setItem('location_audit', agreed.toString());
+    setShowLocationPrompt(false);
+    if (agreed) {
+      await Location.requestForegroundPermissionsAsync();
     }
   };
 
@@ -285,6 +321,30 @@ export default function HomeScreen({ user, onLogout, onNavigate }) {
           <ShieldCheck size={20} color="black" />
           <Text style={styles.adminFabText}>MODO AUDITOR</Text>
         </TouchableOpacity>
+      )}
+      {/* Location Audit Prompt */}
+      {showLocationPrompt && (
+        <Modal transparent={true} animationType="slide" visible={showLocationPrompt}>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { borderColor: '#D4AF37', borderTopWidth: 5 }]}>
+              <View style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', padding: 15, borderRadius: 50, marginBottom: 15 }}>
+                <ShieldCheck size={30} color="#D4AF37" />
+              </View>
+              <Text style={styles.modalTitle}>Seguridad GPS</Text>
+              <Text style={[styles.modalSubtitle, { marginBottom: 25 }]}>
+                ¿Desea activar la auditoría de ubicación? Esto protege su cuenta permitiendo rastrear el origen de las transacciones en caso de fraude.
+              </Text>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity style={styles.cancelButton} onPress={() => handleLocationConsent(false)}>
+                  <Text style={styles.cancelButtonText}>NO, GRACIAS</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.confirmButton} onPress={() => handleLocationConsent(true)}>
+                  <Text style={styles.confirmButtonText}>ACTIVAR GPS</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       )}
     </View>
   );
