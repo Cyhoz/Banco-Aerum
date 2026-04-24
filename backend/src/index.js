@@ -28,10 +28,9 @@ const transactionRoutes = require('./routes/transactions');
 const adminRoutes = require('./routes/admin');
 const interbankRoutes = require('./routes/interbank');
 
-// Detectar prefijo según el entorno
-const apiPrefix = process.env.VERCEL ? '' : '/api';
+// Usar rutas con prefijo /api
+const apiPrefix = '/api';
 
-// Usar rutas con prefijo inteligente
 app.use(`${apiPrefix}/auth`, authRoutes);
 app.use(`${apiPrefix}/accounts`, accountRoutes);
 app.use(`${apiPrefix}/transactions`, transactionRoutes);

@@ -220,7 +220,7 @@ router.post('/login', async (req, res) => {
  *       400:
  *         description: Error en el registro
  */
-router.post('/signup', async (req, res) => {
+router.post('/logout', async (req, res) => {
   try {
     const { error } = await supabase.auth.signOut();
     if (error) return res.status(400).json({ error: error.message });

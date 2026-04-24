@@ -28,7 +28,7 @@ const options = {
       },
     },
   },
-  apis: ['./src/routes/*.js'], // Ruta a los archivos de rutas para extraer las anotaciones
+  apis: [require('path').join(__dirname, '../routes/*.js')], // Ruta absoluta para compatibilidad con Vercel
 };
 
 const specs = swaggerJsdoc(options);
