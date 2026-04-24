@@ -35,14 +35,19 @@ const Dashboard = () => {
 
   const fetchData = async () => {
     try {
+      console.log('--- FETCHING DATA IN DASHBOARD ---');
       const accRes = await accountService.getAccounts();
-      console.log('--- ACCOUNT DATA RECEIVED ---', accRes.data);
+      console.log('--- API RESPONSE RECEIVED ---', accRes.data);
+      
       if (accRes.data && accRes.data.length > 0) {
         const myAcc = accRes.data[0];
-        setAccount({...myAcc}); // Usamos spread para forzar re-render
+        console.log('--- SETTING ACCOUNT ---', myAcc);
+        setAccount({...myAcc}); 
         
         const transRes = await transactionService.getTransactions(myAcc.id);
         setTransactions(transRes.data || []);
+      } else {
+        console.warn('--- NO ACCOUNTS FOUND IN RESPONSE ---');
       }
 
       // Cargar bancos externos
@@ -294,7 +299,7 @@ const Dashboard = () => {
                  margin: 0
                }}>
                  <span style={{ fontSize: '1.5rem', marginRight: '6px', color: 'var(--aerum-gold)' }}>$</span>
-                 {account?.balance ?? '0'}
+                 {account ? (account.balance?.toLocaleString() || '0') : '...'}
                </h1>
                <button 
                  onClick={fetchData} 
