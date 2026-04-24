@@ -12,16 +12,22 @@ router.get('/', authenticateToken, async (req, res) => {
   console.log('User ID from token:', req.user.id);
   try {
     // 1. Intentar obtener cuentas existentes
+    console.log('Querying DB for user:', req.user.id);
     let { data, error } = await supabaseAdmin
       .from('accounts')
       .select('*')
       .eq('user_id', req.user.id);
+    
+    console.log('DB Results found:', data?.length || 0);
 
-    if (error) return res.status(400).json({ error: error.message });
+    if (error) {
+      console.error('DB Error:', error);
+      return res.status(400).json({ error: error.message });
+    }
 
     // 2. Si no hay cuentas, crear una automáticamente (Self-healing)
     if (!data || data.length === 0) {
-      console.log(`Auto-creando cuenta para usuario: ${req.user.id}`);
+      console.log(`EMERGENCIA: Auto-creando cuenta para usuario: ${req.user.id}`);
       const accountNumber = '99' + Math.floor(10000000 + Math.random() * 90000000);
       const { data: newAcc, error: createError } = await supabaseAdmin
         .from('accounts')
