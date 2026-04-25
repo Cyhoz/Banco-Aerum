@@ -52,6 +52,11 @@ export default function TransferScreen({ user, onBack }) {
     }
 
     const transferAmount = parseFloat(amount);
+    if (transferAmount < 10) {
+      Alert.alert('Error', 'El monto mínimo es de $10');
+      return;
+    }
+
     if (transferAmount > senderAccount.balance) {
       Alert.alert('Error', 'Saldo insuficiente');
       return;

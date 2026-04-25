@@ -507,6 +507,7 @@ const Dashboard = () => {
                       type="number" 
                       placeholder="0.00"
                       required
+                      min="10"
                       style={{ width: '100%', padding: '14px 14px 14px 30px', border: '1px solid var(--aerum-border)', borderRadius: '8px', fontSize: '1.1rem', fontWeight: '700' }}
                       value={formData.amount}
                       onChange={(e) => setFormData({...formData, amount: e.target.value})}
