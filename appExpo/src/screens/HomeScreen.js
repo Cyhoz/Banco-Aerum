@@ -261,7 +261,7 @@ export default function HomeScreen({ user, onLogout, onNavigate }) {
                 <Text style={styles.txDate}>{new Date(tx.created_at).toLocaleDateString()} • {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
               </View>
               <Text style={[styles.txAmount, { color: tx.type === 'CREDITO' ? '#00ff7f' : '#D4AF37' }]}>
-                {tx.type === 'CREDITO' ? '+' : '-'}${tx.amount.toLocaleString()}
+                {tx.type === 'CREDITO' ? '+' : '+'}${tx.amount.toLocaleString()}
               </Text>
             </View>
           )) : (

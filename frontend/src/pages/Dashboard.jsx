@@ -437,7 +437,7 @@ const Dashboard = () => {
                     fontSize: '1.2rem',
                     color: t.type === 'CREDITO' ? '#059669' : 'var(--aerum-navy)'
                   }}>
-                    {t.type === 'CREDITO' ? '+' : '-'}${t.amount.toLocaleString()}
+                    {t.type === 'CREDITO' ? '+' : '+'}${t.amount.toLocaleString()}
                   </p>
                   <p style={{ fontSize: '0.7rem', color: 'var(--aerum-gray-medium)', fontWeight: '700' }}>CONFIRMADO</p>
                 </div>
