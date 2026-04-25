@@ -10,12 +10,12 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:5001',
-        description: 'Servidor Local (Desarrollo)',
+        url: 'https://banco-aerum.vercel.app',
+        description: 'Servidor de Producción (Vercel)',
       },
       {
-        url: '/api',
-        description: 'Servidor de Producción (Vercel)',
+        url: 'http://localhost:5001',
+        description: 'Servidor Local (Desarrollo)',
       }
     ],
     components: {
