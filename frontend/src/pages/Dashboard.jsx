@@ -306,6 +306,9 @@ const Dashboard = () => {
                     {showAccountNumber ? <EyeOff size={16} /> : <Eye size={16} />}
                    </button>
                 </div>
+                <p style={{ fontSize: '0.65rem', color: 'var(--aerum-navy)', opacity: 0.6, fontWeight: '800', marginTop: '4px', letterSpacing: '0.1em' }}>
+                  {user?.user_metadata?.full_name?.toUpperCase() || 'TITULAR AERUM'}
+                </p>
               </div>
               <div style={{ background: 'var(--aerum-gray-light)', padding: '12px', borderRadius: '12px' }}>
                 <CreditCard color="var(--aerum-navy)" size={32} />

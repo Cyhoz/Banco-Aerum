@@ -220,7 +220,7 @@ export default function HomeScreen({ user, onLogout, onNavigate }) {
             <Text style={styles.accountNumber}>
               {account ? (showSensitive ? (account.account_number || '00000000') : '•••• ••••') : 'Cargando...'}
             </Text>
-            <Text style={[styles.accountNumber, { fontSize: 10, opacity: 0.6 }]}>TITULAR AERUM</Text>
+            <Text style={[styles.accountNumber, { fontSize: 10, opacity: 0.6 }]}>{user.user_metadata?.full_name?.toUpperCase() || 'TITULAR AERUM'}</Text>
           </View>
         </View>
 
