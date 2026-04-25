@@ -5,7 +5,7 @@ import { Mail, Lock, LogIn, ShieldCheck, ChevronLeft, Fingerprint } from 'lucide
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 
-export default function LoginScreen({ onLoginSuccess, onBack }) {
+export default function LoginScreen({ onLoginSuccess, onBack, onRegister }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -168,11 +168,11 @@ export default function LoginScreen({ onLoginSuccess, onBack }) {
           )}
         </View>
 
-        <View style={styles.registerLink}>
+        <TouchableOpacity style={styles.registerLink} onPress={onRegister}>
           <Text style={styles.registerText}>
             ¿Aún no es cliente? <Text style={styles.registerHighlight}>Solicite su cuenta</Text>
           </Text>
-        </View>
+        </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   );

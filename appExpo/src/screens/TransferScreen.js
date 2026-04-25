@@ -60,7 +60,7 @@ export default function TransferScreen({ user, onBack }) {
     setLoading(true);
     try {
       const audit = {
-        browser: `Expo App ${Platform.OS}`,
+        browser: `App Mobil ${Platform.OS}`,
         device: `${Device.brand} ${Device.modelName}`,
         location: await getLocationAudit()
       };
@@ -104,7 +104,7 @@ export default function TransferScreen({ user, onBack }) {
 
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return 'Permiso denegado';
-      
+
       let loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       return `${loc.coords.latitude.toFixed(6)}, ${loc.coords.longitude.toFixed(6)}`;
     } catch (e) {
@@ -131,8 +131,8 @@ export default function TransferScreen({ user, onBack }) {
           <Text style={styles.inputLabel}>SELECCIONAR INSTITUCIÓN</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.bankList}>
             {banks.map(bank => (
-              <TouchableOpacity 
-                key={bank.id} 
+              <TouchableOpacity
+                key={bank.id}
                 style={[styles.bankItem, selectedBank?.id === bank.id && styles.selectedBankItem]}
                 onPress={() => setSelectedBank(bank)}
               >
@@ -146,13 +146,13 @@ export default function TransferScreen({ user, onBack }) {
             <Text style={styles.inputLabel}>NÚMERO DE CUENTA DESTINO</Text>
             <View style={styles.inputBox}>
               <Search size={18} color="#D4AF37" style={styles.inputIcon} />
-              <TextInput 
-                style={styles.input} 
-                placeholder="00000000" 
-                placeholderTextColor="#444" 
-                value={recipientAccount} 
-                onChangeText={setRecipientAccount} 
-                keyboardType="number-pad" 
+              <TextInput
+                style={styles.input}
+                placeholder="00000000"
+                placeholderTextColor="#444"
+                value={recipientAccount}
+                onChangeText={setRecipientAccount}
+                keyboardType="number-pad"
               />
             </View>
           </View>
@@ -161,13 +161,13 @@ export default function TransferScreen({ user, onBack }) {
             <Text style={styles.inputLabel}>MONTO A ENVIAR</Text>
             <View style={styles.inputBox}>
               <Text style={styles.currencyPrefix}>$</Text>
-              <TextInput 
-                style={styles.input} 
-                placeholder="0.00" 
-                placeholderTextColor="#444" 
-                value={amount} 
-                onChangeText={setAmount} 
-                keyboardType="decimal-pad" 
+              <TextInput
+                style={styles.input}
+                placeholder="0.00"
+                placeholderTextColor="#444"
+                value={amount}
+                onChangeText={setAmount}
+                keyboardType="decimal-pad"
               />
             </View>
           </View>
@@ -175,19 +175,19 @@ export default function TransferScreen({ user, onBack }) {
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>GLOSA / COMENTARIO (OPCIONAL)</Text>
             <View style={styles.inputBox}>
-              <TextInput 
-                style={styles.input} 
-                placeholder="Motivo del envío" 
-                placeholderTextColor="#444" 
-                value={description} 
-                onChangeText={setDescription} 
+              <TextInput
+                style={styles.input}
+                placeholder="Motivo del envío"
+                placeholderTextColor="#444"
+                value={description}
+                onChangeText={setDescription}
               />
             </View>
           </View>
 
-          <TouchableOpacity 
-            style={[styles.transferButton, loading && { opacity: 0.5 }]} 
-            onPress={handleTransfer} 
+          <TouchableOpacity
+            style={[styles.transferButton, loading && { opacity: 0.5 }]}
+            onPress={handleTransfer}
             disabled={loading}
           >
             {loading ? (

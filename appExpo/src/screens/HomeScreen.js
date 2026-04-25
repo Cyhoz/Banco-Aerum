@@ -130,7 +130,7 @@ export default function HomeScreen({ user, onLogout, onNavigate }) {
         amount: amount,
         description: 'Depósito en Efectivo',
         type: 'CREDITO',
-        browser: `Expo App ${Platform.OS}`,
+        browser: `App Mobil ${Platform.OS}`,
         device: `${Device.brand} ${Device.modelName}`,
         location: await getLocationAudit()
       }]);

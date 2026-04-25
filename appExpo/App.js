@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, StatusBar } from 'react-native';
 import { supabase } from './supabase';
 import LoginScreen from './src/screens/LoginScreen';
+import RegisterScreen from './src/screens/RegisterScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import TransferScreen from './src/screens/TransferScreen';
 import AdminScreen from './src/screens/AdminScreen';
@@ -11,7 +12,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentScreen, setCurrentScreen] = useState('home');
-  const [showLogin, setShowLogin] = useState(false);
+  const [authMode, setAuthMode] = useState(null); // 'login', 'register' or null
 
   useEffect(() => {
     // Check active session
@@ -31,16 +32,29 @@ export default function App() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    setShowLogin(false);
+    setAuthMode(null);
   };
 
   if (loading) return <View style={{ flex: 1, backgroundColor: '#0A0A0A' }} />;
 
   if (!user) {
-    if (showLogin) {
-      return <LoginScreen onLoginSuccess={(u) => setUser(u)} onBack={() => setShowLogin(false)} />;
+    if (authMode === 'login') {
+      return (
+        <LoginScreen 
+          onLoginSuccess={(u) => setUser(u)} 
+          onBack={() => setAuthMode(null)} 
+          onRegister={() => setAuthMode('register')}
+        />
+      );
     }
-    return <WelcomeScreen onStartLogin={() => setShowLogin(true)} />;
+    if (authMode === 'register') {
+      return (
+        <RegisterScreen 
+          onBack={() => setAuthMode('login')} 
+        />
+      );
+    }
+    return <WelcomeScreen onStartLogin={() => setAuthMode('login')} />;
   }
 
   // Simple Router
