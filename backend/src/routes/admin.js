@@ -52,6 +52,74 @@ router.get('/users', async (req, res) => {
   }
 });
 
+// NUEVA RUTA: Listar usuarios con su saldo y cuenta para la vista principal
+router.get('/users-summary', async (req, res) => {
+  try {
+    const { data: { users }, error: uError } = await supabaseAdmin.auth.admin.listUsers();
+    if (uError) return res.status(400).json({ error: uError.message });
+
+    const { data: accounts, error: aError } = await supabaseAdmin
+      .from('accounts')
+      .select('user_id, account_number, balance');
+
+    const combined = users.map(user => {
+      const acc = accounts.find(a => a.user_id === user.id);
+      return {
+        id: user.id,
+        email: user.email,
+        full_name: user.user_metadata?.full_name || 'Sin nombre',
+        role: user.user_metadata?.role || 'user',
+        last_sign_in: user.last_sign_in_at,
+        account_number: acc?.account_number || 'Sin cuenta',
+        balance: acc?.balance || 0
+      };
+    });
+
+    res.json(combined);
+  } catch (err) {
+    res.status(500).json({ error: 'Error al obtener resumen de usuarios' });
+  }
+});
+
+// NUEVA RUTA: Detalle completo de un usuario (Movimientos + Auditoría)
+router.get('/users/:id/detail', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { data: { user }, error: uError } = await supabaseAdmin.auth.admin.getUserById(id);
+    if (uError) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    const { data: account, error: aError } = await supabaseAdmin
+      .from('accounts')
+      .select('*')
+      .eq('user_id', id)
+      .single();
+
+    let transactions = [];
+    if (account) {
+      const { data: txs } = await supabaseAdmin
+        .from('transactions')
+        .select('*')
+        .eq('account_id', account.id)
+        .order('created_at', { ascending: false });
+      transactions = txs || [];
+    }
+
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        full_name: user.user_metadata?.full_name,
+        last_login: user.last_sign_in_at,
+        created_at: user.created_at
+      },
+      account,
+      transactions
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al obtener detalle del usuario' });
+  }
+});
+
 /**
  * @swagger
  * /api/admin/users:
