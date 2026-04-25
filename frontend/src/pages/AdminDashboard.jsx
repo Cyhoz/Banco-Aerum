@@ -246,9 +246,19 @@ const AdminDashboard = () => {
                     <td style={{ padding: '20px' }}>{new Date(t.created_at).toLocaleString('es-CL')}</td>
                     <td style={{ padding: '20px', fontWeight: '700' }}>{t.accounts?.account_number}</td>
                     <td style={{ padding: '20px' }}>
-                      <div style={{ display: 'flex', gap: '10px' }}>
-                        <Globe size={14} title={t.browser} />
-                        {t.device?.includes('Móvil') ? <Smartphone size={14} /> : <Monitor size={14} />}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Globe size={14} color="var(--aerum-navy)" />
+                          <span style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--aerum-navy)' }}>
+                            {t.browser || 'Sistema (Interno)'}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {t.browser?.toLowerCase().includes('mobil') ? <Smartphone size={14} color="var(--aerum-gray-medium)" /> : <Monitor size={14} color="var(--aerum-gray-medium)" />}
+                          <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--aerum-gray-medium)' }}>
+                            {t.device || 'Servidor'}
+                          </span>
+                        </div>
                       </div>
                     </td>
                     <td style={{ padding: '20px' }}>
@@ -363,9 +373,19 @@ const AdminDashboard = () => {
                                 }}>{t.type}</span>
                               </td>
                               <td style={{ padding: '16px 0' }}>
-                                <div style={{ display: 'flex', gap: '8px', color: 'var(--aerum-navy)' }}>
-                                  <Globe size={14} title={t.browser} />
-                                  {t.device?.includes('Móvil') ? <Smartphone size={14} /> : <Monitor size={14} />}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Globe size={12} color="var(--aerum-navy)" />
+                                    <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--aerum-navy)' }}>
+                                      {t.browser || 'Sistema'}
+                                    </span>
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    {t.browser?.toLowerCase().includes('mobil') ? <Smartphone size={12} color="var(--aerum-gray-medium)" /> : <Monitor size={12} color="var(--aerum-gray-medium)" />}
+                                    <span style={{ fontSize: '0.65rem', fontWeight: '600', color: 'var(--aerum-gray-medium)' }}>
+                                      {t.device || 'Servidor'}
+                                    </span>
+                                  </div>
                                 </div>
                               </td>
                               <td style={{ padding: '16px 0' }}>
