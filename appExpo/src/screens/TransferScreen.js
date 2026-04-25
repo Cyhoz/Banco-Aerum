@@ -129,7 +129,7 @@ export default function TransferScreen({ user, onBack }) {
 
         <View style={styles.senderCard}>
           <Text style={styles.senderLabel}>SALDO DISPONIBLE</Text>
-          <Text style={styles.senderBalance}>$ {senderAccount?.balance?.toLocaleString() || '0'}</Text>
+          <Text style={styles.senderBalance}>$ {senderAccount?.balance?.toLocaleString('es-CL') || '0'} CLP</Text>
         </View>
 
         <View style={styles.form}>

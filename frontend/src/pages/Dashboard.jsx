@@ -323,7 +323,8 @@ const Dashboard = () => {
                  margin: 0
                }}>
                  <span style={{ fontSize: '1.5rem', marginRight: '6px', color: 'var(--aerum-gold)' }}>$</span>
-                 {account ? (account.balance?.toLocaleString() || '0') : '...'}
+                 {account ? (account.balance?.toLocaleString('es-CL') || '0') : '...'}
+                 <span style={{ fontSize: '1rem', marginLeft: '8px', color: 'var(--aerum-gray-medium)', fontWeight: '600' }}>CLP</span>
                </h1>
                <button 
                  onClick={fetchData} 
@@ -437,7 +438,7 @@ const Dashboard = () => {
                     fontSize: '1.2rem',
                     color: t.type === 'CREDITO' ? '#059669' : 'var(--aerum-navy)'
                   }}>
-                    {t.type === 'CREDITO' ? '+' : '+'}${t.amount.toLocaleString()}
+                    {t.type === 'CREDITO' ? '+' : '+'}${t.amount.toLocaleString('es-CL')} CLP
                   </p>
                   <p style={{ fontSize: '0.7rem', color: 'var(--aerum-gray-medium)', fontWeight: '700' }}>CONFIRMADO</p>
                 </div>
