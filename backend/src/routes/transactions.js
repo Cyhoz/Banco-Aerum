@@ -147,6 +147,11 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Saldo insuficiente' });
     }
 
+    // --- ESCUDO DE SEGURIDAD: EVITAR CARGOS PEQUEÑOS (COMO LOS $6) ---
+    if (amount < 10) {
+      return res.status(400).json({ error: 'El monto mínimo de transferencia es de $10. Operación cancelada por seguridad.' });
+    }
+
     if (type === 'TRANSFERENCIA') {
       if (!recipient_account_number) {
         return res.status(400).json({ error: 'Debes proporcionar un número de cuenta' });
