@@ -37,6 +37,8 @@ export const transactionService = {
 
 export const adminService = {
   listUsers: () => api.get('/admin/users'),
+  getUsersSummary: () => api.get('/admin/users-summary'),
+  getUserDetail: (id) => api.get(`/admin/users/${id}/detail`),
   createUser: (userData) => api.post('/admin/users', userData),
   deleteUser: (id) => api.delete(`/admin/users/${id}`),
 };

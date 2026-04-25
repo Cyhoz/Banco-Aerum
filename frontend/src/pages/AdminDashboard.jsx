@@ -178,8 +178,12 @@ const AdminDashboard = () => {
                 {usersSummary.map((u, idx) => (
                   <tr key={idx} style={{ borderBottom: '1px solid var(--aerum-border)', fontSize: '0.9rem' }}>
                     <td style={{ padding: '20px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontWeight: '800', color: 'var(--aerum-navy)' }}>{u.full_name}</span>
+                      <div 
+                        onClick={() => handleAuditUser(u.id)}
+                        style={{ display: 'flex', flexDirection: 'column', cursor: 'pointer' }}
+                        title="Haga clic para auditar expediente"
+                      >
+                        <span style={{ fontWeight: '800', color: 'var(--aerum-navy)', textDecoration: 'underline var(--aerum-gold)' }}>{u.full_name}</span>
                         <span style={{ fontSize: '0.75rem', color: 'var(--aerum-gray-medium)' }}>{u.email}</span>
                       </div>
                     </td>
