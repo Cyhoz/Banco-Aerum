@@ -168,16 +168,22 @@ router.post('/', authenticateToken, async (req, res) => {
       // --- LÓGICA INTERBANCARIA (EXTERNA) ---
       if (external_url) {
         try {
-          // Intentar enviar al otro banco
-          const response = await axios.post(`${external_url}/api/transactions/interbank/receive`, {
-            monto: amount,
+          // Intentar enviar al otro banco usando el estándar acordado o fallback
+          const response = await axios.post(`${external_url}/api/interbank/receive`, {
+            // Estándar en inglés (Swagger)
+            account_number: recipient_account_number,
+            amount: amount,
+            from_bank: 'Banco Aerum',
+            api_key: 'AERUM-BRIDGE-2026', // La clave estándar o la que tengan configurada
+            description: description,
+            // Fallback para compañeros que usen variables en español
             cuenta_destino: recipient_account_number,
+            monto: amount,
             banco_origen: 'Banco Aerum',
-            clave_secreta: SHARED_SECRET,
-            descripcion: description
+            clave_secreta: 'AERUM-BRIDGE-2026'
           });
 
-          if (response.data.success) {
+          if (response.data.success || response.status === 200 || response.status === 201) {
              // Registrar salida local con auditoría
              await supabaseAdmin.from('transactions').insert([{ 
                 account_id: senderAccount.id, 
@@ -193,6 +199,7 @@ router.post('/', authenticateToken, async (req, res) => {
              return res.json({ message: 'Transferencia interbancaria enviada con éxito', newBalance: senderAccount.balance - amount });
           }
         } catch (err) {
+          console.error("Error interbancario:", err.response?.data || err.message);
           return res.status(400).json({ error: 'El banco destino no respondió o rechazó la operación: ' + (err.response?.data?.error || err.message) });
         }
       }
